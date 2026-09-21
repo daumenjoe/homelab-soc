@@ -30,7 +30,7 @@ import time
 from collections import Counter, defaultdict
 from pathlib import Path
 
-VERSION = "1.2.0"
+VERSION = "1.2.1"
 
 # --------------------------------------------------------------------------
 # Configuration
@@ -53,6 +53,7 @@ DEFAULTS = {
         "window_seconds": 21600,      # 6 h sliding window
         "burst_gap_seconds": 2,       # A/AAAA/HTTPS triplets collapse to one event
         "min_events": 12,
+        "min_duration_seconds": 3600,  # a pattern must persist; page-driven ad refresh does not
         "min_interval": 15,
         "max_interval": 3600,
         "max_jitter": 0.15,           # MAD / median of intervals
@@ -87,9 +88,11 @@ DEFAULTS = {
 QUERY_TYPES = {1: "A", 2: "AAAA", 3: "ANY", 4: "SRV", 5: "SOA", 6: "PTR",
                7: "TXT", 8: "NAPTR", 9: "MX", 10: "DS", 11: "RRSIG",
                12: "DNSKEY", 13: "NS", 14: "OTHER", 15: "SVCB", 16: "HTTPS"}
-# status values that mean "blocked by Pi-hole" (gravity, regex, exact, CNAME
-# variants, special domain, database busy, ...). Everything else is allowed.
-BLOCKED_STATUS = {1, 4, 5, 6, 7, 8, 9, 10, 11, 15, 16, 17}
+# status values that mean "blocked" (gravity, regex, denylist, their CNAME
+# variants, upstream blocks incl. EDE15, database busy, special domain).
+# NOT blocked: 2 forwarded, 3 cache, 12-14 retried/in progress, and 17 =
+# answered from STALE cache - counting 17 as blocked was a bug up to 1.2.0.
+BLOCKED_STATUS = {1, 4, 5, 6, 7, 8, 9, 10, 11, 15, 16, 18}
 REPLY_NXDOMAIN = 2
 
 VOWELS = set("aeiouy")
@@ -420,6 +423,8 @@ def detect_beaconing(rows, cfg, allow, state, now, emit):
                 collapsed.append(t)
         if len(collapsed) < c["min_events"]:
             continue
+        if collapsed[-1] - collapsed[0] < c["min_duration_seconds"]:
+            continue
         intervals = [b - a for a, b in zip(collapsed, collapsed[1:])]
         med = statistics.median(intervals)
         if not (c["min_interval"] <= med <= c["max_interval"]):
@@ -446,6 +451,7 @@ def detect_beaconing(rows, cfg, allow, state, now, emit):
              regularity=round(regularity, 2),
              score=round(regularity * (1 - jitter), 2),
              blocked_queries=blocked.get((client, domain), 0),
+             duration_seconds=collapsed[-1] - collapsed[0],
              first_seen=collapsed[0],
              last_seen=collapsed[-1],
              window_seconds=c["window_seconds"])

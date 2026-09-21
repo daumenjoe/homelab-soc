@@ -68,3 +68,23 @@ Domains sind in diesem Protokoll bewusst nur als Kategorie genannt.
 **Fehler:** Die Zählbasis 110030 (NXDOMAIN) hatte Level 0. Wazuh merkt sich Level-0-Treffer nicht für `if_matched_sid`, die Frequency-Regel 110031 (Level 8) war damit seit ihrer Entstehung wirkungslos. Im Unbound-Modul war derselbe Aufbau korrekt (Basis auf Level 2) – das Wissen war vorhanden, nur nicht überall angewendet.
 **Maßnahme:** 110030 auf Level 2 (unter `log_alert_level`, also weiterhin unsichtbar, aber zählbar). Testfall 31 belegt den Alarm.
 **Bilanz der Regressionstests nach zwei Tagen:** sechs stille Fehler in drei Modulen, keiner davon wäre im Dashboard aufgefallen – fehlende Alerts sehen aus wie Ruhe.
+
+### Befund 8: Review der Analytics-Allowlist – Pauschalfreigabe mietbarer Cloud-Namensräume entfernt (2026-09-21)
+
+**Analyse:** Die Allowlist enthielt Suffixe großer Cloud-Anbieter mit der Begründung „zufällig aussehende Labels". Das trifft auf namensbasierte Erkennung zu (dort bleibt die Liste, Wazuh-Gate 2). Im Analytics-Modul prüfen DGA und NRD aber die registrierbare Domain, die Einträge wirkten praktisch nur auf Beaconing – und das ist verhaltensbasiert. Ergebnis war ein blinder Fleck genau dort, wo gemietete C2-Infrastruktur typischerweise liegt.
+**Maßnahme:** vier mietbare Namensräume entfernt; Namensräume, in denen nur der Betreiber selbst hostet, bleiben. Künftig Einzelhost-Einträge mit Begründung statt Suffix-Freibriefen.
+**Ergebnis:** sofort ein zuvor unsichtbarer Treffer – ein IoT-Gateway, das rund um die Uhr im 31-Minuten-Takt sein Hersteller-Backend kontaktiert. Gerät identifiziert, Verhalten erwartet, als Einzelhost mit Begründung eingetragen.
+
+### Befund 9: Beaconing – acht Treffer durch einen einzigen Browser-Tab (2026-09-21)
+
+**Analyse:** acht Werbe-/Portal-Domains, ein Client, identischer 31-Sekunden-Takt, je 13–14 Ereignisse: eine offene Portalseite mit automatischem Werbe-Reload. `min_events` 12 bedeutete bei 30 s Takt, dass sechs Minuten Aktivität als Beaconing galten.
+**Bewertung:** Schwäche der Detection, kein Allowlist-Thema – morgen wäre es ein anderes Portal. Echtes C2-Beaconing hält über Stunden an.
+**Maßnahme (v1.2.1):** neuer Parameter `beacon.min_duration_seconds` (Standard 3600). Das Muster muss mindestens eine Stunde bestehen. Der IoT-Treffer aus Befund 8 (über 6 h) bleibt erkannt, die Tab-Treffer (7 min) entfallen – ohne Allowlist-Eintrag.
+
+### Befund 10: Fehler im Blocked-Zähler – FTL-Status 17 ist kein Block; Korrektur zu Befund 4 (2026-09-21)
+
+**Entdeckt durch:** Widerspruch in der Triage – ein Client, der vom Blocking ausgenommen ist, zeigte „blocked"-Zähler größer null. Gegenprobe direkt in der FTL-Datenbank: 400× Status 17, kein einziger echter Block.
+**Ursache:** Status 17 bedeutet in Pi-hole v6 „aus veraltetem Cache beantwortet" (erlaubt). Das Skript führte ihn seit der ersten Version in der Liste der Block-Status; Status 18 (Block durch Upstream, EDE 15) fehlte dagegen.
+**Auswirkung:** `blocked_queries` war überhöht; Regel 110092 („Beaconing auf geblockte Domain") feuerte auch für nicht geblockte Domains. **Korrektur zu Befund 4:** Die dort genannten Blocked-Zahlen stammten aus diesem Zähler und sind nicht belastbar; sicher geblockt war nur die DDR-Anfrage (Sonderdomain). Die Absenkung von 110092 auf Level 6 bleibt bestehen, die Begründung „Apps rennen gegen die Blockliste" war aber nur teilweise richtig.
+**Maßnahme (v1.2.1):** Status 17 entfernt, Status 18 ergänzt; per Test mit nachgebauter Datenbank belegt (Status 17 → blocked 0, Status 1 und 18 → gezählt).
+**Lehre:** Aufzählungswerte fremder Systeme gegen deren Dokumentation und gegen echte Daten prüfen – und Widersprüche in der Triage ernst nehmen, statt sie wegzuerklären.

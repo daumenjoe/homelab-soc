@@ -214,6 +214,8 @@ Dazu kommen Entropie-basierte DGA-Bewertung und NXDOMAIN-Quoten pro Client, die 
 - **Single-Label-Filter**: Namen ohne Punkt werden ignoriert – unqualifizierte Hostnamen und dnsmasq-Platzhalter wie `opcode` können das Internet nicht erreichen.
 - **Cooldown pro Treffer** (Beaconing 6 h, DGA/NRD 24 h, NXDOMAIN 1 h), Zustand in `state.json`.
 
+**Mindestdauer (seit v1.2.1):** Beaconing zählt erst, wenn das Muster mindestens eine Stunde anhält (`beacon.min_duration_seconds`). Seiten mit automatischem Werbe-Reload erzeugen sonst binnen Minuten ein Dutzend perfekt regelmäßiger „Beacons“.
+
 ### NRD-Feed
 Quelle: `https://smet.cz/nrd/data/30d.txt.gz` (CC BY 4.0, Namensnennung „NRD data by smet.cz"). Der tägliche Update-Job lädt das gzip, prüft eine Mindestgröße und importiert in eine SQLite-Tabelle mit `domain` als Primärschlüssel (`WITHOUT ROWID`, also direkt der B-Tree-Index). Der Tausch erfolgt atomar. Ergebnis: 11,4 Mio. Einträge in 256 MB, Lookup pro Domain ist ein Index-Hit, der Analytics-Lauf braucht dafür keinen nennenswerten Speicher. Die erste Version hielt die Liste als Python-Set im RAM – auf dem Pi bei dieser Listengröße nicht tragbar, deshalb der Umbau.
 
@@ -291,6 +293,7 @@ Baseline: 20.931 Anfragen, 5 Findings, 0 True Positives. Der Beaconing-Detektor 
 - **Unbound cached SERVFAIL.** Für wiederholte DNSSEC-Tests vorher `unbound-control flush <domain>`.
 - **Debians `python3-tldextract` liefert den PSL-Snapshot nicht mit** und lädt lazy – der Fehler kommt beim ersten Aufruf, nicht beim Import. Das Skript probiert den Snapshot, dann einen Download in den State-Ordner, dann den eingebauten Fallback.
 - **`opcode` ist keine Domain.** Pi-hole zeigt so Nicht-Query-DNS-Pakete an; Fritzbox-Mesh erzeugt sie im 5-Minuten-Takt.
+- **FTL-Status 17 ist kein Block.** „Aus veraltetem Cache beantwortet“ ist eine erlaubte Anfrage; geblockt sind 1, 4–11, 15, 16 und 18. Bis v1.2.0 zählte das Skript 17 mit – aufgefallen erst, als ein vom Blocking ausgenommener Client „geblockte“ Anfragen zeigte.
 - **`json.tool` versteht kein JSON-Lines.** Zeilenweise parsen.
 
 ---
