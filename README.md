@@ -86,3 +86,7 @@ Erstlauf von pihole-analytics: 20.931 Queries, 5 Findings, alle triagiert, 0 Tru
 
 - Wazuh-Dashboard für das DNS-Modul
 - Honeypot, Suricata, Velociraptor + Atomic Red Team, LLM-gestützte Triage
+
+## Lizenz
+
+[MIT](LICENSE). Die NRD-Daten stammen von [smet.cz](https://smet.cz/nrd/) (CC BY 4.0); sie werden zur Laufzeit geladen und sind nicht Teil dieses Repos.

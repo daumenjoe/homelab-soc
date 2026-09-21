@@ -328,4 +328,4 @@ Für das Gespräch taugt vor allem die Geschichte hinter dem Gate-Fehler: Was wa
 
 ## Lizenz und Attribution
 
-NRD data by [smet.cz](https://smet.cz/nrd/) (CC BY 4.0). Pi-hole, Unbound und Wazuh unter ihren jeweiligen Open-Source-Lizenzen.
+Dieses Projekt steht unter der MIT-Lizenz (siehe `LICENSE`). NRD data by [smet.cz](https://smet.cz/nrd/) (CC BY 4.0). Pi-hole, Unbound und Wazuh unter ihren jeweiligen Open-Source-Lizenzen.
