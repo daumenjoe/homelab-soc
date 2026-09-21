@@ -49,6 +49,7 @@ unbound/         Logging-Konfiguration und Logrotate für Unbound
 analytics/       pihole-analytics: Skript, Config, systemd-Units, Logrotate
 tests/           Testfälle und Runner für wazuh-logtest
 scripts/         collect / deploy / check-public / gen-rule-table
+dashboards/      Wazuh-Dashboard als Saved-Objects-Import (.ndjson)
 docs/            DOKUMENTATION.md (ausführlich), RULES.md (generiert)
 TUNING.md        Triage-Protokoll: Finding -> Bewertung -> Maßnahme
 ```
@@ -78,13 +79,16 @@ Ein Fall ist eine Datei in `tests/cases/` mit echten Logzeilen und der Menge an 
 
 Negativtests gehören dazu: interne Namen und CDN-Hosts dürfen die Gates nicht passieren.
 
+## Dashboard
+
+`dashboards/dns-detection-dashboard.ndjson` enthält ein fertiges Dashboard (Kennzahlen, Verlauf nach Regel, Module, Top-Regeln/-Domains/-Clients, Analytics-Findings, MITRE, Detailliste ab Level 7). Import im Wazuh-Dashboard unter *Dashboards Management → Saved objects → Import*; fehlen danach Felder wie `data.dns.domain`, einmal die Feldliste des Index-Patterns `wazuh-alerts-*` aktualisieren.
+
 ## Tuning und Betrieb
 
 Erstlauf von pihole-analytics: 20.931 Queries, 5 Findings, alle triagiert, 0 True Positives. Jede daraus abgeleitete Allowlist- oder Schwellwert-Änderung steht mit Begründung in [`TUNING.md`](TUNING.md). Die bekannten Stolperfallen (OSRegex ohne Alternation, CDB nur exakt, Level-Reihenfolge bei Kindregeln …) stehen in `docs/DOKUMENTATION.md`, Abschnitt 8.
 
 ## Roadmap
 
-- Wazuh-Dashboard für das DNS-Modul
 - Honeypot, Suricata, Velociraptor + Atomic Red Team, LLM-gestützte Triage
 
 ## Lizenz
