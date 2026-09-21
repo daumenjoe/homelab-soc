@@ -1,0 +1,12 @@
+<!-- VORLAGE - nach 0109-local_overrides.xml kopieren und anpassen: ueberschreibt Gate 110003 mit der generischen CDN-Liste
+     plus umgebungsspezifischen Suffixen. Wird nach 0100-pihole_rules.xml geladen. -->
+<group name="pihole,dns,">
+
+  <rule id="110003" level="0" overwrite="yes">
+    <if_sid>110002</if_sid>
+    <field name="dns.qtype">\S+</field>
+    <field name="dns.domain" negate="yes" type="pcre2">(?i)\.(cdn\.cloudflare\.net|akamaiedge\.net|akamaized\.net|akadns\.net|edgekey\.net|edgesuite\.net|cloudfront\.net|fastly\.net|fbcdn\.net|gstatic\.com|googleusercontent\.com|cloudapp\.azure\.com|trafficmanager\.net|azureedge\.net|amazonaws\.com|llnwd\.net|apple-dns\.net|aaplimg\.com|vendor-telemetry\.example\.com|device-cloud\.example\.net)$</field>
+    <description>Pi-hole: external DNS event, non-CDN (local suffix list)</description>
+  </rule>
+
+</group>

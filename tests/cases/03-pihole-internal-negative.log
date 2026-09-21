@@ -1,0 +1,5 @@
+# desc: Negativtest – interne Namen dürfen Gate 110002 nicht passieren
+# expect: 110000
+Sep 17 21:40:01 dnsmasq[920]: query[PTR] 251.178.168.192.in-addr.arpa from 192.168.178.201
+Sep 17 21:40:02 dnsmasq[920]: query[A] fritz.box from 192.168.178.35
+Sep 17 21:40:03 dnsmasq[920]: query[A] pi.hole from 192.168.178.109

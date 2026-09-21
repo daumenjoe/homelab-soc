@@ -1,0 +1,3 @@
+# desc: FQDN ab 70 Zeichen (kein Label ab 40) feuert 110023
+# expect: 110023
+Sep 21 20:10:01 dnsmasq[925]: query[A] portal.customer-services.region-europe-west.internal-gateway.platform.example.org from 192.168.178.201

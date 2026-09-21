@@ -1,0 +1,32 @@
+# desc: 30 NXDOMAIN-Antworten in 30 s zählen auf 110031
+# expect: 110030 110031
+Sep 21 20:11:00 dnsmasq[925]: reply host00.example.net is NXDOMAIN
+Sep 21 20:11:01 dnsmasq[925]: reply host01.example.net is NXDOMAIN
+Sep 21 20:11:02 dnsmasq[925]: reply host02.example.net is NXDOMAIN
+Sep 21 20:11:03 dnsmasq[925]: reply host03.example.net is NXDOMAIN
+Sep 21 20:11:04 dnsmasq[925]: reply host04.example.net is NXDOMAIN
+Sep 21 20:11:05 dnsmasq[925]: reply host05.example.net is NXDOMAIN
+Sep 21 20:11:06 dnsmasq[925]: reply host06.example.net is NXDOMAIN
+Sep 21 20:11:07 dnsmasq[925]: reply host07.example.net is NXDOMAIN
+Sep 21 20:11:08 dnsmasq[925]: reply host08.example.net is NXDOMAIN
+Sep 21 20:11:09 dnsmasq[925]: reply host09.example.net is NXDOMAIN
+Sep 21 20:11:10 dnsmasq[925]: reply host10.example.net is NXDOMAIN
+Sep 21 20:11:11 dnsmasq[925]: reply host11.example.net is NXDOMAIN
+Sep 21 20:11:12 dnsmasq[925]: reply host12.example.net is NXDOMAIN
+Sep 21 20:11:13 dnsmasq[925]: reply host13.example.net is NXDOMAIN
+Sep 21 20:11:14 dnsmasq[925]: reply host14.example.net is NXDOMAIN
+Sep 21 20:11:15 dnsmasq[925]: reply host15.example.net is NXDOMAIN
+Sep 21 20:11:16 dnsmasq[925]: reply host16.example.net is NXDOMAIN
+Sep 21 20:11:17 dnsmasq[925]: reply host17.example.net is NXDOMAIN
+Sep 21 20:11:18 dnsmasq[925]: reply host18.example.net is NXDOMAIN
+Sep 21 20:11:19 dnsmasq[925]: reply host19.example.net is NXDOMAIN
+Sep 21 20:11:20 dnsmasq[925]: reply host20.example.net is NXDOMAIN
+Sep 21 20:11:21 dnsmasq[925]: reply host21.example.net is NXDOMAIN
+Sep 21 20:11:22 dnsmasq[925]: reply host22.example.net is NXDOMAIN
+Sep 21 20:11:23 dnsmasq[925]: reply host23.example.net is NXDOMAIN
+Sep 21 20:11:24 dnsmasq[925]: reply host24.example.net is NXDOMAIN
+Sep 21 20:11:25 dnsmasq[925]: reply host25.example.net is NXDOMAIN
+Sep 21 20:11:26 dnsmasq[925]: reply host26.example.net is NXDOMAIN
+Sep 21 20:11:27 dnsmasq[925]: reply host27.example.net is NXDOMAIN
+Sep 21 20:11:28 dnsmasq[925]: reply host28.example.net is NXDOMAIN
+Sep 21 20:11:29 dnsmasq[925]: reply host29.example.net is NXDOMAIN

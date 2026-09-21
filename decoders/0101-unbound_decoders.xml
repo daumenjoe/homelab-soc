@@ -1,0 +1,41 @@
+<!-- Unbound 1.22 recursive resolver, log-replies / log-servfail / val-log-level 2 -->
+<decoder name="unbound">
+  <prematch>unbound[\d+:\d+] </prematch>
+</decoder>
+
+<!-- info: validation failure <domain. A IN>: reason -->
+<decoder name="unbound-validation">
+  <parent>unbound</parent>
+  <prematch offset="after_parent">info: validation failure </prematch>
+  <regex offset="after_parent">^info: validation failure \.(\S+) (\S+) IN\.: (\.+)$</regex>
+  <order>dns.domain, dns.qtype, dns.reason</order>
+</decoder>
+
+<!-- info: client domain. TYPE IN RCODE duration from_cache size -->
+<decoder name="unbound-reply">
+  <parent>unbound</parent>
+  <prematch offset="after_parent">info: \S+ \S+ \S+ IN </prematch>
+  <regex offset="after_parent">^info: (\S+) (\S+) (\S+) IN (\w+) (\S+) (\d) (\d+)$</regex>
+  <order>dns.client, dns.domain, dns.qtype, dns.rcode, dns.duration, dns.from_cache, dns.response_size</order>
+</decoder>
+
+<decoder name="unbound-error">
+  <parent>unbound</parent>
+  <prematch offset="after_parent">error: </prematch>
+  <regex offset="after_parent">^error: (\.+)$</regex>
+  <order>dns.message</order>
+</decoder>
+
+<decoder name="unbound-notice">
+  <parent>unbound</parent>
+  <prematch offset="after_parent">notice: </prematch>
+  <regex offset="after_parent">^notice: (\.+)$</regex>
+  <order>dns.message</order>
+</decoder>
+
+<decoder name="unbound-info">
+  <parent>unbound</parent>
+  <prematch offset="after_parent">info: </prematch>
+  <regex offset="after_parent">^info: (\.+)$</regex>
+  <order>dns.message</order>
+</decoder>

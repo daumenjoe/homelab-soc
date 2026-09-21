@@ -1,0 +1,123 @@
+<group name="pihole,dns,">
+
+  <rule id="110000" level="0">
+    <decoded_as>pihole</decoded_as>
+    <description>Pi-hole DNS event</description>
+  </rule>
+
+<!-- Gate 1: extern und nicht auf der Allowlist -->
+  <rule id="110002" level="0">
+    <if_sid>110000</if_sid>
+    <field name="dns.domain" negate="yes" type="pcre2">(?i)(\.in-addr\.arpa|\.ip6\.arpa|\.local|\.lan|(^|\.)fritz\.box|^pi\.hole)$</field>
+    <list field="dns.domain" lookup="not_match_key">etc/lists/dns-allow</list>
+    <description>Pi-hole: external, non-allowlisted DNS event</description>
+  </rule>
+
+<!-- Gate 2: zusätzlich kein bekannter CDN/Cloud-Suffix (für Heuristik-Regeln) -->
+  <rule id="110003" level="0">
+    <if_sid>110002</if_sid>
+    <field name="dns.qtype">\S+</field>
+    <field name="dns.domain" negate="yes" type="pcre2">(?i)\.(cdn\.cloudflare\.net|akamaiedge\.net|akamaized\.net|akadns\.net|edgekey\.net|edgesuite\.net|cloudfront\.net|fastly\.net|fbcdn\.net|gstatic\.com|googleusercontent\.com|cloudapp\.azure\.com|trafficmanager\.net|azureedge\.net|amazonaws\.com|llnwd\.net|apple-dns\.net|aaplimg\.com)$</field>
+    <description>Pi-hole: external DNS event, non-CDN</description>
+  </rule>
+
+  <!-- Blocked -->
+  <rule id="110010" level="3">
+    <if_sid>110002, 110003</if_sid>
+    <field name="dns.block_reason">\w+</field>
+    <description>Pi-hole: domain $(dns.domain) blocked ($(dns.block_reason))</description>
+    <group>dns_blocked,</group>
+  </rule>
+
+  <!-- TXT-Anfragen: einzeln Info, gehäuft Tunneling-Verdacht -->
+  <rule id="110020" level="3">
+    <if_sid>110002, 110003</if_sid>
+    <field name="dns.qtype">^TXT$</field>
+    <description>Pi-hole: TXT query for $(dns.domain) from $(srcip)</description>
+    <group>dns_txt,</group>
+  </rule>
+
+  <rule id="110021" level="8" frequency="20" timeframe="120">
+    <if_matched_sid>110020</if_matched_sid>
+    <same_srcip />
+    <description>Pi-hole: $(srcip) sent 20+ TXT queries in 2 min - possible DNS tunneling</description>
+    <mitre><id>T1071.004</id><id>T1048.003</id></mitre>
+  </rule>
+
+  <!-- Überlange Labels / Domains: Tunneling- oder Exfil-Indikator -->
+  <rule id="110022" level="7">
+    <if_sid>110003</if_sid>
+    <field name="dns.domain" type="pcre2">^[^.]{40,}\.</field>
+    <description>Pi-hole: oversized DNS label (40+ chars) in $(dns.domain) from $(srcip)</description>
+    <mitre><id>T1048.003</id></mitre>
+  </rule>
+
+  <rule id="110023" level="6">
+    <if_sid>110003</if_sid>
+    <field name="dns.domain" type="pcre2">^.{70,}$</field>
+    <description>Pi-hole: oversized FQDN (70+ chars): $(dns.domain)</description>
+  </rule>
+
+  <!-- DGA-Heuristik: Label ohne Vokale / lange Konsonantenketten / viele Ziffern -->
+  <rule id="110024" level="6">
+    <if_sid>110003</if_sid>
+    <field name="dns.domain" type="pcre2">(?i)^(?=[a-z0-9-]{12,}\.[a-z0-9-]+$)(?:[^.]*[bcdfghjklmnpqrstvwxz]{5,}|[^aeiouy.]{12,}\.|(?:[a-z-]*\d){6,})</field>
+    <description>Pi-hole: DGA-like domain $(dns.domain) from $(srcip)</description>
+    <mitre><id>T1568.002</id></mitre>
+    <group>dns_dga,</group>
+  </rule>
+
+  <!-- NXDOMAIN-Sturm: klassischer DGA-Indikator -->
+  <rule id="110030" level="2">
+    <if_sid>110002, 110003</if_sid>
+    <field name="dns.answer">^NXDOMAIN$</field>
+    <description>Pi-hole: NXDOMAIN for $(dns.domain)</description>
+  </rule>
+
+  <rule id="110031" level="8" frequency="25" timeframe="60">
+    <if_matched_sid>110030</if_matched_sid>
+    <description>Pi-hole: 25+ NXDOMAIN replies in 60s - DGA / domain-flux activity suspected</description>
+    <mitre><id>T1568.002</id></mitre>
+  </rule>
+
+  <!-- Blocklist-Beaconing: ein Client rennt dauernd gegen die Blockliste -->
+  <rule id="110040" level="7" frequency="30" timeframe="300">
+    <if_matched_sid>110010</if_matched_sid>
+    <same_field>dns.domain</same_field>
+    <description>Pi-hole: $(dns.domain) blocked 30+ times in 5 min - beaconing to blocked domain</description>
+    <mitre><id>T1071.004</id></mitre>
+  </rule>
+
+  <!-- DoH/DoT-Bypass des Pi-hole -->
+  <rule id="110050" level="5">
+    <if_sid>110002, 110003</if_sid>
+    <field name="dns.domain" type="pcre2">(?i)^(dns\.google|dns\.quad9\.net|cloudflare-dns\.com|mozilla\.cloudflare-dns\.com|one\.one\.one\.one|use-application-dns\.net|doh\.[a-z0-9.-]+)$</field>
+    <description>Pi-hole: $(srcip) resolving DoH endpoint $(dns.domain) - possible DNS filter bypass</description>
+    <mitre><id>T1572</id></mitre>
+  </rule>
+
+  <!-- Verdächtige TLDs -->
+  <rule id="110060" level="4">
+    <if_sid>110003</if_sid>
+    <field name="dns.domain" type="pcre2">(?i)\.(xyz|top|tk|ml|ga|cf|gq|zip|mov|click|cam)$</field>
+    <description>Pi-hole: query to high-abuse TLD $(dns.domain) from $(srcip)</description>
+  </rule>
+
+  <!-- TXT-Queries mit verdächtigem Namen: eigener Zählpfad fürs Tunneling.
+       Steht am Dateiende, weil alle Eltern-Regeln vorher definiert sein müssen. -->
+  <rule id="110025" level="7">
+    <if_sid>110022, 110023, 110024, 110060</if_sid>
+    <field name="dns.qtype">^TXT$</field>
+    <description>Pi-hole: TXT query with suspicious name $(dns.domain) from $(srcip)</description>
+    <mitre><id>T1071.004</id></mitre>
+    <group>dns_txt,</group>
+  </rule>
+
+  <rule id="110026" level="10" frequency="10" timeframe="120">
+    <if_matched_sid>110025</if_matched_sid>
+    <same_srcip />
+    <description>Pi-hole: $(srcip) sent 10+ TXT queries with suspicious names in 2 min - likely DNS tunneling</description>
+    <mitre><id>T1071.004</id><id>T1048.003</id></mitre>
+  </rule>
+
+</group>

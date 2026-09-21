@@ -1,0 +1,9 @@
+# VORLAGE - nach allowlist.txt kopieren und anpassen. Die echte Datei ist nicht versioniert.
+# Eine Zeile pro Eintrag, '#' leitet Kommentare ein.
+#   .suffix.example      Suffix-Match (fuehrender Punkt): alles unterhalb, und die Domain selbst
+#   host.example.com     exakter Match auf FQDN oder registrierbare Domain
+#
+# Typische Kandidaten: Konnektivitaets-Checks des Betriebssystems, WLAN-Telefonie
+# (.3gppnetwork.org), Hersteller-Telemetrie, die im festen Takt pollt.
+.connectivity-check.example
+telemetry.vendor.example

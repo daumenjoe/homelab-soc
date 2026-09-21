@@ -1,0 +1,5 @@
+# desc: Negativtest – zufällig aussehende Subdomains seriöser Domains (CDN, Hashes, deutsche Komposita) lösen 110024 nicht aus
+# expect: 110003
+Sep 21 19:41:01 dnsmasq[925]: query[A] rr3---sn-q4fl6ns6.video.example.com from 192.168.178.109
+Sep 21 19:41:02 dnsmasq[925]: query[A] einwilligungsspeicher.consent.example.de from 192.168.178.35
+Sep 21 19:41:03 dnsmasq[925]: query[A] zwjvbnvhnzme.news.example.de from 192.168.178.201

@@ -1,0 +1,3 @@
+# desc: DNSSEC-Validierungsfehler feuert 110071
+# expect: 110071
+Sep 21 14:01:01 unbound[807:0] info: validation failure <bogus.example.org. A IN>: no keys have a DS with algorithm RSASHA1 from 192.0.2.53 for key example.org. while building chain of trust

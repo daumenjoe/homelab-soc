@@ -1,0 +1,4 @@
+# desc: Negativtest – langes, lesbares Label unter bekanntem CDN-Suffix löst 110022 nicht aus (query- und reply-Zeile)
+# expect: 110002
+Sep 20 20:45:51 dnsmasq[925]: query[A] partition-cname-router-service-endpoint-region-europe-west-2.d02-019.edge.cloudfront.net from 192.168.178.35
+Sep 20 20:45:51 dnsmasq[925]: reply partition-cname-router-service-endpoint-region-europe-west-2.d02-019.edge.cloudfront.net is 198.51.100.17

@@ -1,0 +1,19 @@
+[Unit]
+Description=Pi-hole DNS behavioural analytics for Wazuh
+After=pihole-FTL.service
+
+[Service]
+Type=oneshot
+User=pihole
+Group=pihole
+Environment=PIHOLE_ANALYTICS_CONFIG=/etc/pihole-analytics/config.json
+ExecStart=/usr/local/bin/pihole_analytics.py
+StateDirectory=pihole-analytics
+LogsDirectory=pihole-analytics
+LogsDirectoryMode=0755
+Nice=10
+ProtectSystem=strict
+ProtectHome=yes
+PrivateTmp=yes
+NoNewPrivileges=yes
+ReadOnlyPaths=/etc/pihole

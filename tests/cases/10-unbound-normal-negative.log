@@ -1,0 +1,3 @@
+# desc: Negativtest – normale, schnelle, kleine Antwort löst keinen Alert aus
+# expect: 110070
+Sep 21 14:00:01 unbound[807:0] info: 127.0.0.1 www.example.org. A IN NOERROR 0.021345 0 56

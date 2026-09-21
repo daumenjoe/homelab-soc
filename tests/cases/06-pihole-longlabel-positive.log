@@ -1,0 +1,4 @@
+# desc: Überlanges Label feuert 110022 – aber nur auf der query-Zeile, nicht auf der reply-Zeile
+# expect: 110002 110022
+Sep 20 21:00:01 dnsmasq[925]: query[A] mfzwizltebqxgzjanruw4zjaon2gk3tfoqqhi2dfebwgc6y.x.example.com from 192.168.178.201
+Sep 20 21:00:01 dnsmasq[925]: reply mfzwizltebqxgzjanruw4zjaon2gk3tfoqqhi2dfebwgc6y.x.example.com is 93.184.216.34

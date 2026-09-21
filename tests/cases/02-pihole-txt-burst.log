@@ -1,0 +1,32 @@
+# desc: TXT-Burst eines Clients auf wechselnde Subdomains (DNS-Tunneling, 110021)
+# expect: 110025 110026
+Sep 17 21:30:00 dnsmasq[920]: query[TXT] lfxctncsbpcdp3eiw8uo9b4kfel3guxntcchyplv.t.example.com from 192.168.178.201
+Sep 17 21:30:01 dnsmasq[920]: query[TXT] qk2zius50k9ep1frby1u5lzvuq48rxczx93knyaq.t.example.com from 192.168.178.201
+Sep 17 21:30:02 dnsmasq[920]: query[TXT] gec1eio5cqt535kom58fgiirvjapnu8yswyb6252.t.example.com from 192.168.178.201
+Sep 17 21:30:03 dnsmasq[920]: query[TXT] oodwcchfmbafdna5wfjmne49qrddmj3fa8tftat9.t.example.com from 192.168.178.201
+Sep 17 21:30:04 dnsmasq[920]: query[TXT] 5zjng1t2li394330ismbbkjy8q798nhihhw64rx2.t.example.com from 192.168.178.201
+Sep 17 21:30:05 dnsmasq[920]: query[TXT] dx621rg2l28oo80gef63f39xmtea8xs7p53hjkiv.t.example.com from 192.168.178.201
+Sep 17 21:30:06 dnsmasq[920]: query[TXT] jpe6mqv6p7stsapga2gr0ulst2duij1su16pwssy.t.example.com from 192.168.178.201
+Sep 17 21:30:07 dnsmasq[920]: query[TXT] qtr7z57ju74eepcicy26fzxf58h8or93fpsmhlza.t.example.com from 192.168.178.201
+Sep 17 21:30:08 dnsmasq[920]: query[TXT] tpalwsc928djb2jep63jf7uzdcypc7w2d4c5qmt7.t.example.com from 192.168.178.201
+Sep 17 21:30:09 dnsmasq[920]: query[TXT] jesidfbhlk1ksgmaja0tgr7d3pr4osy9m3zwombe.t.example.com from 192.168.178.201
+Sep 17 21:30:10 dnsmasq[920]: query[TXT] c0jfd45ykikqfqj89ti8lmanrshsajdobakivt1x.t.example.com from 192.168.178.201
+Sep 17 21:30:11 dnsmasq[920]: query[TXT] z5ol9f0xb46w03fss423v6yyibemd4uwwyra20st.t.example.com from 192.168.178.201
+Sep 17 21:30:12 dnsmasq[920]: query[TXT] xc0jcj0h09rnry1wxcfj0kuacjyyyksqqe6h97aq.t.example.com from 192.168.178.201
+Sep 17 21:30:13 dnsmasq[920]: query[TXT] 38qjh8hufs8e3s5zi6raarqkfml4a14e7z6kno9v.t.example.com from 192.168.178.201
+Sep 17 21:30:14 dnsmasq[920]: query[TXT] mpjbd4k7ijsgn853w67tzb0q1xkb7eqmk09jxkuo.t.example.com from 192.168.178.201
+Sep 17 21:30:15 dnsmasq[920]: query[TXT] gfh6rh69qfgdmdiju50oosnmcj8esw5hjioq845a.t.example.com from 192.168.178.201
+Sep 17 21:30:16 dnsmasq[920]: query[TXT] bz6rvao7349idfsy7zx1qtb2i7xkejwzecsuniva.t.example.com from 192.168.178.201
+Sep 17 21:30:17 dnsmasq[920]: query[TXT] kq8x5rii8zlarypjy7ibmpyh20sh8l3ih1k8rgip.t.example.com from 192.168.178.201
+Sep 17 21:30:18 dnsmasq[920]: query[TXT] x8foh9fbco65097lg70bxnnlgakm8e8hm33pbrn7.t.example.com from 192.168.178.201
+Sep 17 21:30:19 dnsmasq[920]: query[TXT] gn6bo31bbc7j06mj8wjzlja16w7air88njpr7g20.t.example.com from 192.168.178.201
+Sep 17 21:30:20 dnsmasq[920]: query[TXT] 31vlln2ch1icbtl959jddrzqipwy04xe4kun0hii.t.example.com from 192.168.178.201
+Sep 17 21:30:21 dnsmasq[920]: query[TXT] f5ulo9si3x9dr346bkeg9u7n5qj18dvwhnfhjvxh.t.example.com from 192.168.178.201
+Sep 17 21:30:22 dnsmasq[920]: query[TXT] alyglh2tcdotxdfzokl8lumo59nh0ha6p3o5qfat.t.example.com from 192.168.178.201
+Sep 17 21:30:23 dnsmasq[920]: query[TXT] x6dwnsfks7dr28he79rb7n6w3f2ho43ghosnei06.t.example.com from 192.168.178.201
+Sep 17 21:30:24 dnsmasq[920]: query[TXT] bu1b4evtwlpupxqpawri12qgrdepdpsbwc01sbsn.t.example.com from 192.168.178.201
+Sep 17 21:30:25 dnsmasq[920]: query[TXT] 8e4903g9r86f27cm1f6j3fs7hjslbgf7y6g2etwm.t.example.com from 192.168.178.201
+Sep 17 21:30:26 dnsmasq[920]: query[TXT] 5tu5d9wo2j9um1pg0b3jx9vxlabfwps6eixaamdm.t.example.com from 192.168.178.201
+Sep 17 21:30:27 dnsmasq[920]: query[TXT] ivvhwre7ifdw52ojaxumxp70i6btoic2at7fhvsx.t.example.com from 192.168.178.201
+Sep 17 21:30:28 dnsmasq[920]: query[TXT] 3glkb62za40q0qidibm0z4zjtp2sjx8h5aji080l.t.example.com from 192.168.178.201
+Sep 17 21:30:29 dnsmasq[920]: query[TXT] 5li6wyx9q4z4p0ulhwc6fad7mfbbywz0cvn336c5.t.example.com from 192.168.178.201

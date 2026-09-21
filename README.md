@@ -1,0 +1,88 @@
+# DNS Detection Engineering mit Wazuh, Pi-hole und Unbound
+
+Drei Sensoren, eine Kette: **Pi-hole** sieht, *wer was fragt*. **Unbound** sieht, *ob die Antwort vertrauenswürdig ist*. **pihole-analytics** sieht *Muster über Zeit*, die keine Einzelzeile verrät. Alles landet als strukturierte Events in Wazuh und wird dort über eigene Decoder und Regeln bewertet.
+
+Homelab-Projekt, produktiv im Heimnetz. Jede Regel ist mit echtem Traffic getestet, jedes Finding triagiert, jedes Tuning begründet – siehe [`TUNING.md`](TUNING.md).
+
+## Architektur
+
+```mermaid
+flowchart LR
+  C[Clients] -->|DNS| P[Pi-hole FTL]
+  P -->|127.0.0.1#5335| U[Unbound<br/>DNSSEC-Validierung]
+  U --> I((Internet))
+
+  P -- pihole.log --> A[Wazuh-Agent]
+  U -- unbound.log --> A
+  P -- FTL-DB read-only --> S[pihole-analytics<br/>systemd-Timer 15 min]
+  N[(NRD-DB<br/>30 Tage)] --> S
+  S -- analytics.log JSON --> A
+
+  A --> M[Wazuh-Manager<br/>Decoder + Regeln]
+  M --> D[Dashboard / Alerts]
+```
+
+## Module
+
+| Modul | Datenquelle | Decoder | Rule-IDs | Erkennt |
+|---|---|---|---|---|
+| Pi-hole Query-Log | `/var/log/pihole/pihole.log` | `0100-pihole_decoders.xml` | 110000–110060 | Blocks und Blocklist-Beaconing, TXT-Tunneling, NXDOMAIN-Sturm, DoH-Bypass, Heuristiken (überlange Labels, DGA-Muster, Missbrauchs-TLDs) |
+| Unbound | `/var/log/unbound/unbound.log` | `0101-unbound_decoders.xml` | 110070–110077 | DNSSEC-Validierungsfehler, SERVFAIL-Häufung, übergroße Antworten, langsame Auflösung, Resolver-Fehler und -Neustarts |
+| pihole-analytics | FTL-Datenbank + NRD-Liste | JSON | 110090–110099 | Korrelation NRD + DGA/Beaconing pro Client, Beaconing (auch auf geblockte Domains), DGA, NXDOMAIN-Sturm pro Client, Newly Registered Domains, Heartbeat und Selbstüberwachung |
+
+Vollständige Regelliste mit Leveln, Eltern und MITRE-Mapping: [`docs/RULES.md`](docs/RULES.md) (generiert).
+
+Zwei Entwurfsentscheidungen, die den Unterschied machen:
+
+- **Gate-Regeln statt Ausnahmen pro Regel.** Alle Detections hängen an zwei Level-0-Zwischenregeln: 110002 lässt nur externe, nicht allowgelistete Domains durch, 110003 lässt zusätzlich nur `query`-Zeilen ohne bekannte CDN-/Vendor-Suffixe zu den Heuristiken. Ausnahmen werden so an genau einer Stelle gepflegt. Wichtig dabei: Wazuh wertet Level-0-Kindregeln zuerst aus und steigt danach nur noch in deren Kinder ab. Regeln, die auf beiden Pfaden gelten sollen (Blocked, TXT, NXDOMAIN, DoH), hängen deshalb an beiden Gates (`if_sid 110002, 110003`). Genau diesen Fehler haben die Regressionstests aufgedeckt.
+- **Statistik außerhalb des SIEM.** Beaconing (Median/MAD der Intervalle), DGA-Scoring auf eTLD+1 und NRD-Abgleich gegen 11 Mio. Domains passen nicht in Regel-Syntax. Das erledigt ein gehärtetes Python-Skript auf dem Pi, Wazuh bekommt nur das Ergebnis.
+- **Generische Logik und lokales Tuning sind getrennt.** Das Regelwerk im Repo enthält nur allgemeingültige Ausnahmen (große CDNs). Umgebungsspezifische Suffixe stehen in `rules/0109-local_overrides.xml`, die Gate 110003 per `overwrite="yes"` ersetzt und nicht versioniert wird; Vorlagen liegen als `.example` bei. Dasselbe gilt für die beiden Allowlists (`lists/dns-allow`, `analytics/config/allowlist.txt`): echte Dateien lokal, Vorlagen im Repo. So bleibt das Repo für andere nutzbar und verrät nichts über das eigene Netz.
+
+## Repo-Struktur
+
+```
+decoders/        Wazuh-Decoder            -> /var/ossec/etc/decoders/
+rules/           Wazuh-Regeln             -> /var/ossec/etc/rules/
+lists/           CDB-Allowlist dns-allow  -> /var/ossec/etc/lists/
+agent/           agent.conf der Gruppe    -> /var/ossec/etc/shared/<gruppe>/
+unbound/         Logging-Konfiguration und Logrotate für Unbound
+analytics/       pihole-analytics: Skript, Config, systemd-Units, Logrotate
+tests/           Testfälle und Runner für wazuh-logtest
+scripts/         collect / deploy / check-public / gen-rule-table
+docs/            DOKUMENTATION.md (ausführlich), RULES.md (generiert)
+TUNING.md        Triage-Protokoll: Finding -> Bewertung -> Maßnahme
+```
+
+## Installation
+
+Voraussetzungen: Wazuh 4.x, Pi-hole 6.x mit `dns.queryLogging = true` und `misc.privacylevel = 0`, Unbound mit `log-replies`, `log-servfail` und `val-log-level: 2`.
+
+```bash
+# auf dem Wazuh-Manager, als root
+git clone <repo-url> && cd wazuh-dns-detection
+./scripts/deploy-manager.sh --with-lists   # Konfigtest + Rollback eingebaut
+./tests/run-logtest.sh
+```
+
+In der `ossec.conf` des Managers muss die Liste im `<ruleset>`-Block stehen: `<list>etc/lists/dns-allow</list>`. Die `agent/agent.conf` gehört in die Agent-Gruppe des Pi-hole; der Sync zum Agent dauert bis zu zehn Minuten. Einrichtung von pihole-analytics: siehe `docs/DOKUMENTATION.md`.
+
+## Tests
+
+Ein Fall ist eine Datei in `tests/cases/` mit echten Logzeilen und der Menge an Rule-IDs, die feuern muss. Jeder Fall läuft in einer eigenen `wazuh-logtest`-Session, damit Frequency-Regeln sauber zählen.
+
+```bash
+./tests/run-logtest.sh                   # alles prüfen, Exit-Code 1 bei Abweichung
+./tests/run-logtest.sh --record <fall>   # Ist-Zustand als Soll festhalten
+./tests/run-logtest.sh --table           # tests/expected.md erzeugen
+```
+
+Negativtests gehören dazu: interne Namen und CDN-Hosts dürfen die Gates nicht passieren.
+
+## Tuning und Betrieb
+
+Erstlauf von pihole-analytics: 20.931 Queries, 5 Findings, alle triagiert, 0 True Positives. Jede daraus abgeleitete Allowlist- oder Schwellwert-Änderung steht mit Begründung in [`TUNING.md`](TUNING.md). Die bekannten Stolperfallen (OSRegex ohne Alternation, CDB nur exakt, Level-Reihenfolge bei Kindregeln …) stehen in `docs/DOKUMENTATION.md`, Abschnitt 8.
+
+## Roadmap
+
+- Wazuh-Dashboard für das DNS-Modul
+- Honeypot, Suricata, Velociraptor + Atomic Red Team, LLM-gestützte Triage

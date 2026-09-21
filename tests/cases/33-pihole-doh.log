@@ -1,0 +1,3 @@
+# desc: Auflösung eines DoH-Endpunkts feuert 110050
+# expect: 110050
+Sep 21 20:15:01 dnsmasq[925]: query[A] doh.example.org from 192.168.178.109

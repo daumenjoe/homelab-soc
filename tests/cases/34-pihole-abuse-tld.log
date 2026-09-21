@@ -1,0 +1,3 @@
+# desc: Query auf Missbrauchs-TLD feuert 110060
+# expect: 110060
+Sep 21 20:16:01 dnsmasq[925]: query[A] shop.example.top from 192.168.178.35

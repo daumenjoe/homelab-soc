@@ -1,0 +1,78 @@
+<!-- Rules for pihole-analytics JSON events (agent localfile, log_format json) -->
+<group name="pihole,dns,pihole_analytics,">
+
+  <rule id="110090" level="0">
+    <decoded_as>json</decoded_as>
+    <field name="pihole_analytics.detection">\.+</field>
+    <description>pihole-analytics event</description>
+  </rule>
+
+  <rule id="110091" level="8">
+    <if_sid>110090</if_sid>
+    <field name="pihole_analytics.detection">^beaconing$</field>
+    <description>DNS beaconing: $(pihole_analytics.client) -> $(pihole_analytics.domain) every ~$(pihole_analytics.median_interval)s ($(pihole_analytics.events) events, regularity $(pihole_analytics.regularity))</description>
+    <mitre><id>T1071.004</id><id>T1573</id></mitre>
+    <group>dns_beaconing,</group>
+  </rule>
+
+  <rule id="110092" level="6">
+    <if_sid>110091</if_sid>
+    <field name="pihole_analytics.blocked_queries" type="pcre2">^[1-9]\d*$</field>
+    <description>DNS beaconing to blocklisted domain: $(pihole_analytics.client) -> $(pihole_analytics.domain) ($(pihole_analytics.blocked_queries) blocked)</description>
+    <mitre><id>T1071.004</id></mitre>
+    <group>dns_beaconing,</group>
+  </rule>
+
+  <rule id="110093" level="8">
+    <if_sid>110090</if_sid>
+    <field name="pihole_analytics.detection">^dga$</field>
+    <description>DGA-like domain $(pihole_analytics.domain) from $(pihole_analytics.client) (score $(pihole_analytics.score), entropy $(pihole_analytics.entropy))</description>
+    <mitre><id>T1568.002</id></mitre>
+    <group>dns_dga,</group>
+  </rule>
+
+  <rule id="110094" level="7">
+    <if_sid>110090</if_sid>
+    <field name="pihole_analytics.detection">^nxdomain_ratio$</field>
+    <description>NXDOMAIN storm from $(pihole_analytics.client): $(pihole_analytics.nxdomain_unique) unique failures, ratio $(pihole_analytics.ratio)</description>
+    <mitre><id>T1568.002</id></mitre>
+    <group>dns_dga,</group>
+  </rule>
+
+  <rule id="110095" level="6">
+    <if_sid>110090</if_sid>
+    <field name="pihole_analytics.detection">^nrd$</field>
+    <description>Newly registered domain $(pihole_analytics.registrable) queried by $(pihole_analytics.client) ($(pihole_analytics.domain))</description>
+    <mitre><id>T1583.001</id></mitre>
+    <group>dns_nrd,</group>
+  </rule>
+
+  <rule id="110096" level="1">
+    <if_sid>110090</if_sid>
+    <field name="pihole_analytics.detection">^heartbeat$</field>
+    <description>pihole-analytics run: $(pihole_analytics.queries_new) new queries, NRD entries $(pihole_analytics.nrd_entries)</description>
+  </rule>
+
+  <rule id="110097" level="5">
+    <if_sid>110090</if_sid>
+    <field name="pihole_analytics.detection">^error$</field>
+    <description>pihole-analytics error: $(pihole_analytics.message)</description>
+  </rule>
+
+  <!-- Heartbeat with empty NRD list: feed broken or never fetched -->
+  <rule id="110098" level="4">
+    <if_sid>110096</if_sid>
+    <field name="pihole_analytics.nrd_entries">^0$</field>
+    <description>pihole-analytics running without NRD list - NRD detection inactive</description>
+  </rule>
+
+  <!-- NRD + DGA und/oder Beaconing fuer denselben Client und dieselbe Domain -->
+  <rule id="110099" level="12">
+    <if_sid>110090</if_sid>
+    <field name="pihole_analytics.detection">^correlation$</field>
+    <description>Correlated DNS findings: $(pihole_analytics.client) -> $(pihole_analytics.registrable) ($(pihole_analytics.signals))</description>
+    <mitre><id>T1568.002</id><id>T1071.004</id><id>T1583.001</id></mitre>
+    <group>dns_correlation,</group>
+  </rule>
+
+</group>

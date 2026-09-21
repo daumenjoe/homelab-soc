@@ -1,0 +1,3 @@
+# desc: Korrelation NRD + DGA/Beaconing fuer denselben Client feuert 110099 (Level 12)
+# expect: 110099
+{"pihole_analytics": {"version": "1.2.0", "detection": "correlation", "event_time": "2026-09-21T21:00:02+0200", "client": "192.168.178.50", "registrable": "xkqzwvbnrtplmh.example", "signals": "beaconing+dga+nrd", "signal_count": 3, "nrd_seen": 1790000000, "dga_seen": 1790000000, "beaconing_seen": 1790003600}}

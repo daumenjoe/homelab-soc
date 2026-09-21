@@ -1,0 +1,11 @@
+/var/log/unbound/unbound.log {
+    daily
+    rotate 7
+    compress
+    missingok
+    notifempty
+    create 0640 unbound unbound
+    postrotate
+        unbound-control log_reopen
+    endscript
+}

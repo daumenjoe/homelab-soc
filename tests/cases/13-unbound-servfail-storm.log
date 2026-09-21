@@ -1,0 +1,22 @@
+# desc: 20 schnelle SERVFAILs in 20 s zählen auf 110073
+# expect: 110072 110073
+Sep 21 14:03:00 unbound[807:0] info: 127.0.0.1 h00.example.net. A IN SERVFAIL 0.021345 0 56
+Sep 21 14:03:01 unbound[807:0] info: 127.0.0.1 h01.example.net. A IN SERVFAIL 0.021345 0 56
+Sep 21 14:03:02 unbound[807:0] info: 127.0.0.1 h02.example.net. A IN SERVFAIL 0.021345 0 56
+Sep 21 14:03:03 unbound[807:0] info: 127.0.0.1 h03.example.net. A IN SERVFAIL 0.021345 0 56
+Sep 21 14:03:04 unbound[807:0] info: 127.0.0.1 h04.example.net. A IN SERVFAIL 0.021345 0 56
+Sep 21 14:03:05 unbound[807:0] info: 127.0.0.1 h05.example.net. A IN SERVFAIL 0.021345 0 56
+Sep 21 14:03:06 unbound[807:0] info: 127.0.0.1 h06.example.net. A IN SERVFAIL 0.021345 0 56
+Sep 21 14:03:07 unbound[807:0] info: 127.0.0.1 h07.example.net. A IN SERVFAIL 0.021345 0 56
+Sep 21 14:03:08 unbound[807:0] info: 127.0.0.1 h08.example.net. A IN SERVFAIL 0.021345 0 56
+Sep 21 14:03:09 unbound[807:0] info: 127.0.0.1 h09.example.net. A IN SERVFAIL 0.021345 0 56
+Sep 21 14:03:10 unbound[807:0] info: 127.0.0.1 h10.example.net. A IN SERVFAIL 0.021345 0 56
+Sep 21 14:03:11 unbound[807:0] info: 127.0.0.1 h11.example.net. A IN SERVFAIL 0.021345 0 56
+Sep 21 14:03:12 unbound[807:0] info: 127.0.0.1 h12.example.net. A IN SERVFAIL 0.021345 0 56
+Sep 21 14:03:13 unbound[807:0] info: 127.0.0.1 h13.example.net. A IN SERVFAIL 0.021345 0 56
+Sep 21 14:03:14 unbound[807:0] info: 127.0.0.1 h14.example.net. A IN SERVFAIL 0.021345 0 56
+Sep 21 14:03:15 unbound[807:0] info: 127.0.0.1 h15.example.net. A IN SERVFAIL 0.021345 0 56
+Sep 21 14:03:16 unbound[807:0] info: 127.0.0.1 h16.example.net. A IN SERVFAIL 0.021345 0 56
+Sep 21 14:03:17 unbound[807:0] info: 127.0.0.1 h17.example.net. A IN SERVFAIL 0.021345 0 56
+Sep 21 14:03:18 unbound[807:0] info: 127.0.0.1 h18.example.net. A IN SERVFAIL 0.021345 0 56
+Sep 21 14:03:19 unbound[807:0] info: 127.0.0.1 h19.example.net. A IN SERVFAIL 0.021345 0 56

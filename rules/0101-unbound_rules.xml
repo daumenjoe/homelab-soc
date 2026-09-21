@@ -1,0 +1,57 @@
+<group name="unbound,dns,">
+
+  <rule id="110070" level="0">
+    <decoded_as>unbound</decoded_as>
+    <description>Unbound resolver event</description>
+  </rule>
+
+  <!-- DNSSEC: Bogus-Antwort = Spoofing/Poisoning-Verdacht oder kaputte Zone -->
+  <rule id="110071" level="9">
+    <if_sid>110070</if_sid>
+    <field name="dns.reason">\.+</field>
+    <description>Unbound: DNSSEC validation failure for $(dns.domain) ($(dns.qtype)) - $(dns.reason)</description>
+    <mitre><id>T1557</id><id>T1565.002</id></mitre>
+    <group>dnssec_bogus,</group>
+  </rule>
+
+  <!-- SERVFAIL einzeln leise, gehäuft laut -->
+  <rule id="110072" level="2">
+    <if_sid>110070</if_sid>
+    <field name="dns.rcode">^SERVFAIL$</field>
+    <description>Unbound: SERVFAIL for $(dns.domain)</description>
+  </rule>
+
+  <rule id="110073" level="7" frequency="15" timeframe="60">
+    <if_matched_sid>110072</if_matched_sid>
+    <description>Unbound: 15+ SERVFAIL in 60s - upstream resolution failing (uplink issue, hijack or DNSSEC problem)</description>
+  </rule>
+
+  <!-- Ungewöhnlich große Antworten: Tunneling-Rückkanal / Amplification -->
+  <rule id="110074" level="5">
+    <if_sid>110070</if_sid>
+    <field name="dns.response_size" type="pcre2">^\d{4,}$</field>
+    <description>Unbound: large DNS response ($(dns.response_size) bytes) for $(dns.domain) $(dns.qtype)</description>
+    <mitre><id>T1071.004</id></mitre>
+  </rule>
+
+  <!-- Langsame Auflösung >5s: Ops-Signal, kein Security-Alert -->
+  <rule id="110075" level="3">
+    <if_sid>110070</if_sid>
+    <field name="dns.duration" type="pcre2">^([5-9]|\d{2,})\.</field>
+    <field name="dns.rcode" negate="yes">^SERVFAIL$</field>
+    <description>Unbound: slow resolution ($(dns.duration)s) for $(dns.domain)</description>
+  </rule>
+
+  <rule id="110076" level="5">
+    <if_sid>110070</if_sid>
+    <match type="pcre2">(^|\] )error: (?!SERVFAIL )</match>
+    <description>Unbound error: $(dns.message)</description>
+  </rule>
+
+  <rule id="110077" level="3">
+    <if_sid>110070</if_sid>
+    <match>start of service</match>
+    <description>Unbound restarted</description>
+  </rule>
+
+</group>

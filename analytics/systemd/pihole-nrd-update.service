@@ -1,0 +1,15 @@
+[Unit]
+Description=Update newly-registered-domains DB for pihole-analytics
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+User=pihole
+Group=pihole
+Environment=NRD_URL=https://smet.cz/nrd/data/30d.txt.gz
+Environment=NRD_DB=/var/lib/pihole-analytics/nrd.db
+ExecStart=/usr/local/bin/nrd-update.sh
+StateDirectory=pihole-analytics
+Nice=15
+IOSchedulingClass=idle

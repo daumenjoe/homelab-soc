@@ -1,0 +1,3 @@
+# desc: Neustart des Resolvers feuert 110077
+# expect: 110077
+Sep 21 14:08:01 unbound[807:0] info: start of service (unbound 1.22.0).

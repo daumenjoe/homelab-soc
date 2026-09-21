@@ -1,0 +1,13 @@
+{
+  "db_path": "/etc/pihole/pihole-FTL.db",
+  "log_path": "/var/log/pihole-analytics/analytics.log",
+  "state_path": "/var/lib/pihole-analytics/state.json",
+  "allowlist_path": "/etc/pihole-analytics/allowlist.txt",
+  "nrd_path": "/var/lib/pihole-analytics/nrd.db",
+  "ignore_suffixes": [".in-addr.arpa", ".ip6.arpa", ".local", ".lan", ".fritz.box", ".home.arpa"],
+  "ignore_clients": [],
+  "beacon":   { "window_seconds": 21600, "min_events": 12, "min_interval": 15, "max_interval": 3600, "max_jitter": 0.15, "min_regularity": 0.8 },
+  "dga":      { "min_label_length": 10, "min_entropy": 3.5, "min_score": 3 },
+  "nxdomain": { "min_unique": 20, "min_ratio": 0.3 },
+  "nrd":      { "include_blocked": true }
+}

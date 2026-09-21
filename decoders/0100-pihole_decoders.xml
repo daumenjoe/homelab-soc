@@ -1,0 +1,53 @@
+<!-- Pi-hole v6 (FTL 6.x) / dnsmasq query log -->
+<decoder name="pihole">
+  <prematch>dnsmasq[\d+]: </prematch>
+</decoder>
+
+<decoder name="pihole-query">
+  <parent>pihole</parent>
+  <prematch offset="after_parent">query[</prematch>
+  <regex offset="after_parent">^query[(\S+)] (\S+) from (\S+)$</regex>
+  <order>dns.qtype, dns.domain, srcip</order>
+</decoder>
+
+<decoder name="pihole-blocked">
+  <parent>pihole</parent>
+  <prematch offset="after_parent">\w+ blocked </prematch>
+  <regex offset="after_parent">^(\w+) blocked (\S+) is (\S+)$</regex>
+  <order>dns.block_reason, dns.domain, dns.answer</order>
+</decoder>
+
+<decoder name="pihole-forwarded">
+  <parent>pihole</parent>
+  <prematch offset="after_parent">forwarded </prematch>
+  <regex offset="after_parent">^forwarded (\S+) to (\S+)$</regex>
+  <order>dns.domain, dns.upstream</order>
+</decoder>
+
+<decoder name="pihole-reply">
+  <parent>pihole</parent>
+  <prematch offset="after_parent">reply </prematch>
+  <regex offset="after_parent">^reply (\S+) is (\S+)$</regex>
+  <order>dns.domain, dns.answer</order>
+</decoder>
+
+<decoder name="pihole-cached-stale">
+  <parent>pihole</parent>
+  <prematch offset="after_parent">cached-stale </prematch>
+  <regex offset="after_parent">^cached-stale (\S+) is (\S+)$</regex>
+  <order>dns.domain, dns.answer</order>
+</decoder>
+
+<decoder name="pihole-cached">
+  <parent>pihole</parent>
+  <prematch offset="after_parent">cached </prematch>
+  <regex offset="after_parent">^cached (\S+) is (\S+)$</regex>
+  <order>dns.domain, dns.answer</order>
+</decoder>
+
+<decoder name="pihole-config">
+  <parent>pihole</parent>
+  <prematch offset="after_parent">config </prematch>
+  <regex offset="after_parent">^config (\S+) is (\S+)$</regex>
+  <order>dns.domain, dns.answer</order>
+</decoder>

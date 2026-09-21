@@ -1,0 +1,3 @@
+# desc: NXDOMAIN-Sturm pro Client feuert 110094
+# expect: 110094
+{"pihole_analytics": {"version": "1.1.1", "detection": "nxdomain_ratio", "event_time": "2026-09-21T20:15:02+0200", "client": "192.168.178.50", "nxdomain_unique": 42, "total": 60, "ratio": 0.7}}

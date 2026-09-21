@@ -1,0 +1,4 @@
+# desc: Negativtest – CDN-Suffix darf Gate 110003 nicht passieren (keine Heuristik-Alerts)
+# expect: 110002
+Sep 17 21:08:30 dnsmasq[920]: query[A] d1a2b3c4e5f6g7.cloudfront.net from 192.168.178.201
+Sep 17 21:08:30 dnsmasq[920]: forwarded d1a2b3c4e5f6g7.cloudfront.net to 127.0.0.1#5335

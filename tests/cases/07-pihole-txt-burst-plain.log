@@ -1,0 +1,27 @@
+# desc: TXT-Burst mit unauffälligen Namen – zählt über 110020 auf 110021
+# expect: 110020 110021
+Sep 20 21:40:00 dnsmasq[925]: query[TXT] t00.example.com from 192.168.178.201
+Sep 20 21:40:01 dnsmasq[925]: query[TXT] t01.example.com from 192.168.178.201
+Sep 20 21:40:02 dnsmasq[925]: query[TXT] t02.example.com from 192.168.178.201
+Sep 20 21:40:03 dnsmasq[925]: query[TXT] t03.example.com from 192.168.178.201
+Sep 20 21:40:04 dnsmasq[925]: query[TXT] t04.example.com from 192.168.178.201
+Sep 20 21:40:05 dnsmasq[925]: query[TXT] t05.example.com from 192.168.178.201
+Sep 20 21:40:06 dnsmasq[925]: query[TXT] t06.example.com from 192.168.178.201
+Sep 20 21:40:07 dnsmasq[925]: query[TXT] t07.example.com from 192.168.178.201
+Sep 20 21:40:08 dnsmasq[925]: query[TXT] t08.example.com from 192.168.178.201
+Sep 20 21:40:09 dnsmasq[925]: query[TXT] t09.example.com from 192.168.178.201
+Sep 20 21:40:10 dnsmasq[925]: query[TXT] t10.example.com from 192.168.178.201
+Sep 20 21:40:11 dnsmasq[925]: query[TXT] t11.example.com from 192.168.178.201
+Sep 20 21:40:12 dnsmasq[925]: query[TXT] t12.example.com from 192.168.178.201
+Sep 20 21:40:13 dnsmasq[925]: query[TXT] t13.example.com from 192.168.178.201
+Sep 20 21:40:14 dnsmasq[925]: query[TXT] t14.example.com from 192.168.178.201
+Sep 20 21:40:15 dnsmasq[925]: query[TXT] t15.example.com from 192.168.178.201
+Sep 20 21:40:16 dnsmasq[925]: query[TXT] t16.example.com from 192.168.178.201
+Sep 20 21:40:17 dnsmasq[925]: query[TXT] t17.example.com from 192.168.178.201
+Sep 20 21:40:18 dnsmasq[925]: query[TXT] t18.example.com from 192.168.178.201
+Sep 20 21:40:19 dnsmasq[925]: query[TXT] t19.example.com from 192.168.178.201
+Sep 20 21:40:20 dnsmasq[925]: query[TXT] t20.example.com from 192.168.178.201
+Sep 20 21:40:21 dnsmasq[925]: query[TXT] t21.example.com from 192.168.178.201
+Sep 20 21:40:22 dnsmasq[925]: query[TXT] t22.example.com from 192.168.178.201
+Sep 20 21:40:23 dnsmasq[925]: query[TXT] t23.example.com from 192.168.178.201
+Sep 20 21:40:24 dnsmasq[925]: query[TXT] t24.example.com from 192.168.178.201

@@ -1,0 +1,15 @@
+# Laufzeitdaten gehören nicht ins Repo
+*.cdb
+*.db
+*.sqlite
+*.tmp
+state.json
+*.log
+!tests/cases/*.log
+__pycache__/
+
+# lokales Tuning bleibt lokal
+rules/0109-local_overrides.xml
+tests/cases/9*-local-*.log
+analytics/config/allowlist.txt
+lists/dns-allow

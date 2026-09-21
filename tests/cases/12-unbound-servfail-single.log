@@ -1,0 +1,4 @@
+# desc: Einzelner SERVFAIL: info-Zeile und zugehörige error-Zeile
+# expect: 110070 110072
+Sep 21 14:02:01 unbound[807:0] info: 127.0.0.1 broken.example.net. A IN SERVFAIL 0.021345 0 56
+Sep 21 14:02:01 unbound[807:0] error: SERVFAIL <broken.example.net. A IN>: all servers for this domain failed, at zone example.net. upstream server timeout
