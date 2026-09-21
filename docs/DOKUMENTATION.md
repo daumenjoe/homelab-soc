@@ -207,7 +207,9 @@ Dazu kommen Entropie-basierte DGA-Bewertung und NXDOMAIN-Quoten pro Client, die 
 
 **heartbeat** – Ein Ereignis pro Lauf mit Zählern: analysierte Anfragen, NRD-Einträge, Allowlist-Größe, ob `tldextract` aktiv ist, Findings, Laufzeit. Steht `nrd_entries` auf 0, meldet Regel 110098 – ein toter Feed bleibt nicht unbemerkt.
 
-**Korrelation (seit v1.2.0):** Einzelsignale sind fast immer gutartig – das hat die Triage gezeigt. Eine frisch registrierte Domain, die zusätzlich generiert aussieht oder im festen Takt kontaktiert wird, ist dagegen ein starker Indikator. Das Skript führt deshalb pro Client und registrierbarer Domain ein Signal-Gedächtnis (7 Tage, unabhängig von den Alert-Cooldowns, die pro Domain gelten und einen zweiten Client sonst spurlos ließen). Liegt `nrd` zusammen mit `dga` und/oder `beaconing` vor, entsteht ein `correlation`-Event (Wazuh 110099, Level 12); kommt später ein weiteres Signal dazu, wird erneut alarmiert.
+**Tunneling (seit v1.3.0):** DNS-Tunneling und -Exfiltration transportieren ihre Nutzlast im Anfragenamen – jeder Name ist neu. Pro Client und registrierbarer Domain zählt das Skript im 6-Stunden-Fenster die verschiedenen langen Subdomains (ab 20 Zeichen), deren summierte Länge und den Anteil neuer Namen an allen Anfragen. Alarm (Wazuh 110080, Level 10) erst, wenn alle drei Schwellen überschritten sind (60 Namen, 2.500 Zeichen, Anteil 0,4). Die Werte stammen aus einer 24-Stunden-Baseline des echten Verkehrs: Das auffälligste gutartige Paar lag bei 49 Namen, 1.805 Zeichen und 0,33 – Browser fragen jeden Namen als A, AAAA und HTTPS an, ein Tunnel nur einmal. Wiederholte lange Telemetrie-Labels und Werbe-Hashes bleiben damit still; bewusster Preis: sehr langsame Exfiltration weniger Kilobyte rutscht durch.
+
+**Korrelation (seit v1.2.0):** Einzelsignale sind fast immer gutartig – das hat die Triage gezeigt. Eine frisch registrierte Domain, die zusätzlich generiert aussieht oder im festen Takt kontaktiert wird, ist dagegen ein starker Indikator. Das Skript führt deshalb pro Client und registrierbarer Domain ein Signal-Gedächtnis (7 Tage, unabhängig von den Alert-Cooldowns, die pro Domain gelten und einen zweiten Client sonst spurlos ließen). Liegt `nrd` zusammen mit `dga`, `beaconing` und/oder `tunneling` vor, entsteht ein `correlation`-Event (Wazuh 110099, Level 12); kommt später ein weiteres Signal dazu, wird erneut alarmiert.
 
 ### Rauschunterdrückung
 - **Allowlist** (`/etc/pihole-analytics/allowlist.txt`): Zeilen mit führendem Punkt matchen als Suffix, sonst exakt auf FQDN oder eTLD+1. Das ist das vorgesehene Werkzeug gegen TTL-getriebene Neuauflösung von Dauerläufern.
@@ -227,7 +229,7 @@ Quelle: `https://smet.cz/nrd/data/30d.txt.gz` (CC BY 4.0, Namensnennung „NRD d
 
 **Schreibreihenfolge (seit v1.1.1):** Findings werden im Speicher gesammelt, am Ende in einem Rutsch geschrieben und per `fsync` gesichert – erst danach wird der State gespeichert. Ein Abbruch dazwischen führt schlimmstenfalls zu einem doppelten Alert im nächsten Lauf, nie zu einem verlorenen Alert samt Cooldown.
 
-### Wazuh-Regeln (`0102-pihole_analytics_rules.xml`, IDs 110090–110099)
+### Wazuh-Regeln (`0102-pihole_analytics_rules.xml`, IDs 110080, 110090–110099)
 
 | ID | Level | Detection | MITRE |
 |---|---|---|---|
@@ -240,6 +242,7 @@ Quelle: `https://smet.cz/nrd/data/30d.txt.gz` (CC BY 4.0, Namensnennung „NRD d
 | 110097 | 5 | error | – |
 | 110098 | 4 | heartbeat ohne NRD-Liste | – |
 | 110099 | 12 | correlation: nrd + dga und/oder beaconing, gleicher Client und gleiche Domain | T1568.002, T1071.004, T1583.001 |
+| 110080 | 10 | tunneling: viele verschiedene lange Subdomains, ein Client, eine Domain | T1071.004, T1048.003 |
 
 ### Verifiziert
 Synthetische FTL-Datenbank mit 60-s-Beacon, drei DGA-Domains, NXDOMAIN-Sturm und einem NRD-Treffer: alle erkannt, zweiter Lauf liefert nur den Heartbeat. Produktiver Erstlauf auf dem Pi: 20.931 Anfragen in 7 Sekunden, 11.427.920 NRD-Einträge geladen, `tldextract` aktiv, 5 Findings.
@@ -302,16 +305,16 @@ Baseline: 20.931 Anfragen, 5 Findings, 0 True Positives. Der Beaconing-Detektor 
 
 Konkret belegbar sind damit:
 
-- Anbindung zweier Datenquellen an Wazuh mit eigenen Decodern (12 Child-Decoder) und 34 Regeln mit MITRE-ATT&CK-Mapping
+- Anbindung zweier Datenquellen an Wazuh mit eigenen Decodern (12 Child-Decoder) und 35 Regeln mit MITRE-ATT&CK-Mapping
 - Detection Engineering auf DNS-Telemetrie: Tunneling, DGA, NXDOMAIN-Sturm, DoH-Bypass, Beaconing, DNSSEC-Bogus
 - Ein eigenes Analytics-Modul (Python, systemd, SQLite) für statistische Erkennung jenseits der Rule Engine, inklusive Threat-Intel-Anbindung (NRD-Feed) und Least-Privilege-Härtung
 - Detection-as-Code: versioniertes Repo, Deploy-Skript mit Konfigurationstest und automatischem Rollback, generierte Regelübersicht
-- Automatisierte Regressionstests über `wazuh-logtest` (32 Fälle, jede Alert-Regel aller drei Module ist abgedeckt, Positiv- und Negativtests). Der erste Lauf deckte einen stillen Erkennungsausfall auf: Durch einen Fehler im Regelbaum waren vier Detections samt ihrer Korrelationsregeln tagelang blind, ohne dass es im Dashboard auffiel. Ursache analysiert, behoben, per Test abgesichert. Insgesamt fanden die Tests sechs stille Fehler in drei Modulen
+- Automatisierte Regressionstests über `wazuh-logtest` (33 Fälle, jede Alert-Regel aller drei Module ist abgedeckt, Positiv- und Negativtests). Der erste Lauf deckte einen stillen Erkennungsausfall auf: Durch einen Fehler im Regelbaum waren vier Detections samt ihrer Korrelationsregeln tagelang blind, ohne dass es im Dashboard auffiel. Ursache analysiert, behoben, per Test abgesichert. Insgesamt fanden die Tests sechs stille Fehler in drei Modulen
 - Datengetriebenes False-Positive-Tuning mit Vorher-Nachher-Zahlen: eine Regel von ca. 1.900 Alerts pro Tag auf 0 gesenkt – ohne Erkennungsverlust, per Positivtest belegt; jede Maßnahme in `TUNING.md` begründet
 
-Formulierungsvorschlag: *„Detection Engineering auf DNS-Telemetrie im Homelab (Detection-as-Code): Pi-hole und Unbound an Wazuh angebunden (eigene Decoder, 34 Regeln mit MITRE-Mapping), selbst entwickeltes Python-Analytics-Modul für Beaconing-, DGA- und NRD-Erkennung. Automatisierte Regressionstests deckten einen stillen Erkennungsausfall auf; False Positives datengetrieben reduziert (eine Regel von ca. 1.900 Alerts/Tag auf 0 ohne Erkennungsverlust)."*
+Formulierungsvorschlag: *„Detection Engineering auf DNS-Telemetrie im Homelab (Detection-as-Code): Pi-hole und Unbound an Wazuh angebunden (eigene Decoder, 35 Regeln mit MITRE-Mapping), selbst entwickeltes Python-Analytics-Modul für Beaconing-, DGA- und NRD-Erkennung. Automatisierte Regressionstests deckten einen stillen Erkennungsausfall auf; False Positives datengetrieben reduziert (eine Regel von ca. 1.900 Alerts/Tag auf 0 ohne Erkennungsverlust)."*
 
-Kurzfassung für enge Lebensläufe: *„DNS Detection Engineering im Homelab (Wazuh, Pi-hole, Unbound, Python): 34 eigene Regeln mit MITRE-Mapping, Regressionstests, dokumentiertes False-Positive-Tuning."*
+Kurzfassung für enge Lebensläufe: *„DNS Detection Engineering im Homelab (Wazuh, Pi-hole, Unbound, Python): 35 eigene Regeln mit MITRE-Mapping, Regressionstests, dokumentiertes False-Positive-Tuning."*
 
 Für das Gespräch taugt vor allem die Geschichte hinter dem Gate-Fehler: Was war das Symptom (keines – genau das war das Problem), wie wurde es gefunden (Testfall lieferte eine andere Rule-ID als erwartet), was war die Ursache (Auswertungsreihenfolge von Level-0-Kindregeln), was wurde geändert, und wie wird verhindert, dass es wieder passiert.
 

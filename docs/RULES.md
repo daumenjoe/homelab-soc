@@ -50,3 +50,4 @@ Erzeugt mit `scripts/gen-rule-table.py` – nicht von Hand pflegen.
 | 110097 | 5 | 110090 |  |  | pihole-analytics error: $(pihole_analytics.message) |
 | 110098 | 4 | 110096 |  |  | pihole-analytics running without NRD list - NRD detection inactive |
 | 110099 | 12 | 110090 |  | T1568.002, T1071.004, T1583.001 | Correlated DNS findings: $(pihole_analytics.client) -> $(pihole_analytics.registrable) ($(pihole_analytics.signals)) |
+| 110080 | 10 | 110090 |  | T1071.004, T1048.003 | DNS tunneling suspected: $(pihole_analytics.client) -> $(pihole_analytics.registrable) ($(pihole_analytics.unique_long) unique long subdomains, $(pihole_analytics.payload_chars) chars, new-name ratio $(pihole_analytics.new_ratio)) |

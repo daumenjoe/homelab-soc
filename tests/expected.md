@@ -31,6 +31,7 @@ Erzeugt mit `run-logtest.sh --table` – nicht von Hand pflegen.
 | `26-analytics-heartbeat-no-nrd.log` | Heartbeat ohne NRD-Liste feuert 110098 | 1 | 110098 |
 | `27-analytics-error.log` | Fehler des Analytics-Laufs feuert 110097 | 1 | 110097 |
 | `28-analytics-correlation.log` | Korrelation NRD + DGA/Beaconing fuer denselben Client feuert 110099 (Level 12) | 1 | 110099 |
+| `29-analytics-tunneling.log` | Tunneling-Finding (viele verschiedene lange Subdomains) feuert 110080 (Level 10) | 1 | 110080 |
 | `30-pihole-long-fqdn.log` | FQDN ab 70 Zeichen (kein Label ab 40) feuert 110023 | 1 | 110023 |
 | `31-pihole-nxdomain-storm.log` | 30 NXDOMAIN-Antworten in 30 s zählen auf 110031 | 30 | 110030 110031 |
 | `32-pihole-blocklist-beaconing.log` | 35x dieselbe geblockte Domain in unter 5 min zählt auf 110040 | 35 | 110010 110040 |

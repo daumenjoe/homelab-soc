@@ -11,7 +11,8 @@ Detections
   dga             high-entropy / consonant-heavy / digit-heavy registrable label
   nxdomain_ratio  one client producing many NXDOMAIN for distinct domains
   nrd             registrable domain found in a newly-registered-domains list
-  correlation     nrd plus dga and/or beaconing for the same client and domain
+  tunneling       one client, one domain, many DIFFERENT long subdomains (data in names)
+  correlation     nrd plus dga, beaconing and/or tunneling for the same client and domain
   heartbeat       one event per run with counters (job liveness)
 
 Only the Python standard library is required. If `tldextract` is installed
@@ -30,7 +31,7 @@ import time
 from collections import Counter, defaultdict
 from pathlib import Path
 
-VERSION = "1.2.1"
+VERSION = "1.3.0"
 
 # --------------------------------------------------------------------------
 # Configuration
@@ -77,6 +78,15 @@ DEFAULTS = {
     "nrd": {
         "include_blocked": True,
         "cooldown_seconds": 86400,
+    },
+    "tunnel": {
+        # Thresholds from a 24 h baseline of real traffic (2026-09-21): busiest benign
+        # pair had 49 unique long subdomains, 1805 chars, new-name ratio 0.33.
+        "min_subdomain_length": 20,   # subdomain part (without registrable domain)
+        "min_unique": 60,             # distinct long subdomains in the window
+        "min_payload_chars": 2500,    # summed length of those subdomains
+        "min_new_ratio": 0.4,         # distinct names / queries; browsers ask A+AAAA+HTTPS = 0.33
+        "cooldown_seconds": 21600,
     },
     "correlation": {
         "window_seconds": 604800,     # signals older than 7 d no longer combine
@@ -538,6 +548,42 @@ def detect_dga_and_nrd(rows, cfg, allow, nrd, state, now, emit):
              sample=sorted(nx)[:10])
 
 
+def detect_tunneling(rows, cfg, allow, state, now, emit):
+    """DNS tunnelling / exfiltration carries its payload in the query name, so
+    every name is new. Benign look-alikes either repeat one long label
+    (telemetry) or stay far below these volumes (ad hashes)."""
+    c = cfg["tunnel"]
+    total = Counter()
+    names = defaultdict(set)
+    for ts, status, domain, client in rows:
+        d = normalise(domain)
+        regdom, _ = registrable(d)
+        if not d.endswith("." + regdom) or allow.allows(d, regdom):
+            continue
+        total[(client, regdom)] += 1
+        names[(client, regdom)].add(d[:-len(regdom) - 1])
+
+    for (client, regdom), subs in names.items():
+        long_subs = [s for s in subs if len(s) >= c["min_subdomain_length"]]
+        if len(long_subs) < c["min_unique"]:
+            continue
+        payload = sum(len(s) for s in long_subs)
+        ratio = len(subs) / total[(client, regdom)]
+        if payload < c["min_payload_chars"] or ratio < c["min_new_ratio"]:
+            continue
+        state.note_signal(client, regdom, "tunneling", now)
+        key = f"tunneling|{client}|{regdom}"
+        if state.in_cooldown(key, now, c["cooldown_seconds"]):
+            continue
+        state.mark(key, now)
+        emit("tunneling", client=client, registrable=regdom,
+             unique_long=len(long_subs), unique_subdomains=len(subs),
+             queries=total[(client, regdom)], payload_chars=payload,
+             avg_length=round(payload / len(long_subs), 1), new_ratio=round(ratio, 2),
+             sample=[s[:60] for s in sorted(long_subs, key=len, reverse=True)[:3]],
+             window_seconds=cfg["beacon"]["window_seconds"])
+
+
 def detect_correlation(cfg, state, now, emit):
     """A newly registered domain that ALSO looks generated or is contacted at
     fixed intervals by the same client. Each signal alone is mostly benign;
@@ -545,7 +591,7 @@ def detect_correlation(cfg, state, now, emit):
     c = cfg["correlation"]
     for pair, sig in state.data.get("signals", {}).items():
         fresh = {k: v for k, v in sig.items() if now - v <= c["window_seconds"]}
-        if "nrd" not in fresh or not ({"dga", "beaconing"} & fresh.keys()):
+        if "nrd" not in fresh or not ({"dga", "beaconing", "tunneling"} & fresh.keys()):
             continue
         combo = "+".join(sorted(fresh))
         key = f"correlation|{pair}|{combo}"   # a new combination alerts again
@@ -609,6 +655,7 @@ def main():
 
         detect_dga_and_nrd(new_rows, cfg, allow, nrd, state, now, emit.emit)
         detect_beaconing(win_rows, cfg, allow, state, now, emit.emit)
+        detect_tunneling(win_rows, cfg, allow, state, now, emit.emit)
         detect_correlation(cfg, state, now, emit.emit)
 
         if new_rows:

@@ -88,3 +88,11 @@ Domains sind in diesem Protokoll bewusst nur als Kategorie genannt.
 **Auswirkung:** `blocked_queries` war überhöht; Regel 110092 („Beaconing auf geblockte Domain") feuerte auch für nicht geblockte Domains. **Korrektur zu Befund 4:** Die dort genannten Blocked-Zahlen stammten aus diesem Zähler und sind nicht belastbar; sicher geblockt war nur die DDR-Anfrage (Sonderdomain). Die Absenkung von 110092 auf Level 6 bleibt bestehen, die Begründung „Apps rennen gegen die Blockliste" war aber nur teilweise richtig.
 **Maßnahme (v1.2.1):** Status 17 entfernt, Status 18 ergänzt; per Test mit nachgebauter Datenbank belegt (Status 17 → blocked 0, Status 1 und 18 → gezählt).
 **Lehre:** Aufzählungswerte fremder Systeme gegen deren Dokumentation und gegen echte Daten prüfen – und Widersprüche in der Triage ernst nehmen, statt sie wegzuerklären.
+
+### Befund 11: Tunneling-Detection mit Schwellwerten aus einer Baseline statt aus dem Bauch (2026-09-21)
+
+**Anlass:** offener Punkt aus Befund 2 – „immer dasselbe lange Label" (gutartig) von „ständig neue" (Tunneling) unterscheiden.
+**Vorgehen:** vor dem Bau eine Nur-Lese-Analyse über 24 h echten Verkehr (37.370 Queries): pro Client und Domain die Zahl verschiedener langer Subdomains, deren summierte Länge und der Anteil neuer Namen.
+**Baseline:** auffälligstes gutartiges Paar 49 Namen / 1.805 Zeichen / Anteil 0,33 (Cloud-Dienste eines Arbeitsgeräts). Der Anteil 0,33 erklärt sich daraus, dass Browser jeden Namen dreifach anfragen (A, AAAA, HTTPS).
+**Schwellen (v1.3.0):** 60 Namen UND 2.500 Zeichen UND Anteil 0,4 im 6-Stunden-Fenster. Per Test belegt: Tunnel-Muster erkannt; wiederholtes Telemetrie-Label, 49 bzw. 80 Namen im Browser-Muster bleiben still. Zusammen mit einer frisch registrierten Domain entsteht die Korrelation `nrd+tunneling` (110099).
+**Bewusste Grenze:** sehr langsame Exfiltration weniger Kilobyte liegt unter den Schwellen.

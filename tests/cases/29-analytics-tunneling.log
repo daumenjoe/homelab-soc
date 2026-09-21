@@ -1,0 +1,3 @@
+# desc: Tunneling-Finding (viele verschiedene lange Subdomains) feuert 110080 (Level 10)
+# expect: 110080
+{"pihole_analytics": {"version": "1.3.0", "detection": "tunneling", "event_time": "2026-09-22T00:30:02+0200", "client": "192.168.178.50", "registrable": "tunnel-c2.example", "unique_long": 300, "unique_subdomains": 300, "queries": 300, "payload_chars": 15600, "avg_length": 52.0, "new_ratio": 1.0, "sample": ["mfzwizltebqxgzjanruw4zjaon2gk3tfoqqhi2dfebwgc6y.t"], "window_seconds": 21600}}

@@ -75,4 +75,14 @@
     <group>dns_correlation,</group>
   </rule>
 
+  <!-- Viele verschiedene lange Subdomains einer Domain von einem Client: Daten im Namen.
+       ID 110080, weil 110090-110099 belegt sind. -->
+  <rule id="110080" level="10">
+    <if_sid>110090</if_sid>
+    <field name="pihole_analytics.detection">^tunneling$</field>
+    <description>DNS tunneling suspected: $(pihole_analytics.client) -> $(pihole_analytics.registrable) ($(pihole_analytics.unique_long) unique long subdomains, $(pihole_analytics.payload_chars) chars, new-name ratio $(pihole_analytics.new_ratio))</description>
+    <mitre><id>T1071.004</id><id>T1048.003</id></mitre>
+    <group>dns_tunneling,</group>
+  </rule>
+
 </group>
