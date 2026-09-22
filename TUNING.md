@@ -53,7 +53,7 @@ Domains sind in diesem Protokoll bewusst nur als Kategorie genannt.
 **Analyse:** ca. 60 % Videoserver einer Streaming-Plattform, Rest Werbe-Hashes, Cloud-Funktions-Adressen und deutsche Komposita (fünf Konsonanten in Folge sind im Deutschen normal). Gemeinsames Muster: der zufällig aussehende Teil war immer eine Subdomain einer seriösen Hauptdomain.
 **Bewertung:** Denkfehler der Regel – DGA steckt in der registrierbaren Domain, zufällige Subdomains sind CDN-Alltag.
 **Maßnahme:** 110024 feuert nur noch bei zweiteiligen Domains (`zufallsname.tld`). Kein einziger Allowlist-Eintrag nötig. Die präzisere DGA-Erkennung (Entropie auf eTLD+1) leistet pihole-analytics (110093). Testfälle 08 (positiv) und 09 (negativ).
-**Ergebnis:** _Zahl nach 24 h nachtragen._
+**Ergebnis:** 674 Alerts am Tag des Fixes (666 davon vor der Änderung), **0** am Folgetag.
 
 ### Befund 6: Unbound-Modul – zwei weitere stille Fehler durch neue Testfälle (2026-09-21)
 
@@ -96,3 +96,12 @@ Domains sind in diesem Protokoll bewusst nur als Kategorie genannt.
 **Baseline:** auffälligstes gutartiges Paar 49 Namen / 1.805 Zeichen / Anteil 0,33 (Cloud-Dienste eines Arbeitsgeräts). Der Anteil 0,33 erklärt sich daraus, dass Browser jeden Namen dreifach anfragen (A, AAAA, HTTPS).
 **Schwellen (v1.3.0):** 60 Namen UND 2.500 Zeichen UND Anteil 0,4 im 6-Stunden-Fenster. Per Test belegt: Tunnel-Muster erkannt; wiederholtes Telemetrie-Label, 49 bzw. 80 Namen im Browser-Muster bleiben still. Zusammen mit einer frisch registrierten Domain entsteht die Korrelation `nrd+tunneling` (110099).
 **Bewusste Grenze:** sehr langsame Exfiltration weniger Kilobyte liegt unter den Schwellen.
+
+### Befund 12: Regel-Review nach 24 h mit allen Korrekturen (2026-09-22)
+
+**110031 (NXDOMAIN-Sturm, Level 8), 6 Treffer:** ausnahmslos `_https._tcp.<repository>`-Anfragen – seit Ubuntu 24 fragt `apt` beim Update für jedes Repository den HTTPS/SVCB-Record ab, fast keines hat einen, also NXDOMAIN, bei zehn Repos mit A+AAAA sind 25 in 60 s schnell erreicht. **Maßnahme:** Service-Record-Namen (`_dienst._tcp.` / `_udp.`) aus der Zählbasis 110030 ausgeschlossen; sie sind nie DGA-Kandidaten. Testfall 35.
+**110050 (DoH-Endpunkt), 28 Treffer:** 19 davon ohne Client – `reply`-Zeilen, also Doppelzählung. **Maßnahme:** Regel nur noch auf `query`-Zeilen (Testfall 36). Die übrigen 9 verteilen sich auf drei Geräte, die einen bekannten DoH-Endpunkt auflösen. Ob danach tatsächlich DoH am Filter vorbeiläuft, kann DNS nicht sehen – das ist ein konkreter Anwendungsfall für Suricata (TLS-SNI, Port 443 zu bekannten DoH-Adressen).
+**110022 (langes Label), 9 Treffer:** ein Betrugserkennungs-SDK, das viele Shopping-Apps einbetten; immer dasselbe Hash-Label. Suffix in die lokale Override-Datei.
+**110091 (Beaconing), 4 Treffer, davon ein echter Fund:** Zwei Treffer waren Android-Telemetrie unter `googleapis.com` (Google-eigener Namensraum, für DGA/NRD bedeutungslos, als Suffix in die Analytics-Allowlist). Die anderen beiden kamen vom **Virtualisierungs-Host**: alle 35 Minuten der Mailserver des eigenen Providers, sieben Stunden lang. Ursache: eine Benachrichtigungs-Mail hing in der Postfix-Warteschlange, weil der Provider den Absender `root@<host>.fritz.box` ablehnt (Domain existiert nicht); Postfix versuchte es im Backoff-Takt erneut. Kein Angriff, aber ein seit Stunden defektes Benachrichtigungssystem, das ohne die Detection niemand bemerkt hätte. Behoben über eine gültige Absenderadresse in der Proxmox-Konfiguration.
+**110092, 1 Treffer:** App-Telemetrie gegen die Blockliste, mit dem korrigierten Zähler jetzt echte Blocks. Level 6 passt.
+**Bilanz:** 110010 stabil bei ~3.000/Tag (Level 3, informativ), 110024 bei 0, keine Regel unerwartet verstummt.

@@ -1,0 +1,32 @@
+# desc: Negativtest – SVCB/HTTPS-Lookups von apt (_https._tcp.*) zählen nicht auf den NXDOMAIN-Sturm 110031
+# expect: RECORD-ME
+Sep 22 20:00:00 dnsmasq[925]: reply _https._tcp.repo00.example.org is NXDOMAIN
+Sep 22 20:00:01 dnsmasq[925]: reply _https._tcp.repo01.example.org is NXDOMAIN
+Sep 22 20:00:02 dnsmasq[925]: reply _https._tcp.repo02.example.org is NXDOMAIN
+Sep 22 20:00:03 dnsmasq[925]: reply _https._tcp.repo03.example.org is NXDOMAIN
+Sep 22 20:00:04 dnsmasq[925]: reply _https._tcp.repo04.example.org is NXDOMAIN
+Sep 22 20:00:05 dnsmasq[925]: reply _https._tcp.repo05.example.org is NXDOMAIN
+Sep 22 20:00:06 dnsmasq[925]: reply _https._tcp.repo06.example.org is NXDOMAIN
+Sep 22 20:00:07 dnsmasq[925]: reply _https._tcp.repo07.example.org is NXDOMAIN
+Sep 22 20:00:08 dnsmasq[925]: reply _https._tcp.repo08.example.org is NXDOMAIN
+Sep 22 20:00:09 dnsmasq[925]: reply _https._tcp.repo09.example.org is NXDOMAIN
+Sep 22 20:00:10 dnsmasq[925]: reply _https._tcp.repo10.example.org is NXDOMAIN
+Sep 22 20:00:11 dnsmasq[925]: reply _https._tcp.repo11.example.org is NXDOMAIN
+Sep 22 20:00:12 dnsmasq[925]: reply _https._tcp.repo12.example.org is NXDOMAIN
+Sep 22 20:00:13 dnsmasq[925]: reply _https._tcp.repo13.example.org is NXDOMAIN
+Sep 22 20:00:14 dnsmasq[925]: reply _https._tcp.repo14.example.org is NXDOMAIN
+Sep 22 20:00:15 dnsmasq[925]: reply _https._tcp.repo15.example.org is NXDOMAIN
+Sep 22 20:00:16 dnsmasq[925]: reply _https._tcp.repo16.example.org is NXDOMAIN
+Sep 22 20:00:17 dnsmasq[925]: reply _https._tcp.repo17.example.org is NXDOMAIN
+Sep 22 20:00:18 dnsmasq[925]: reply _https._tcp.repo18.example.org is NXDOMAIN
+Sep 22 20:00:19 dnsmasq[925]: reply _https._tcp.repo19.example.org is NXDOMAIN
+Sep 22 20:00:20 dnsmasq[925]: reply _https._tcp.repo20.example.org is NXDOMAIN
+Sep 22 20:00:21 dnsmasq[925]: reply _https._tcp.repo21.example.org is NXDOMAIN
+Sep 22 20:00:22 dnsmasq[925]: reply _https._tcp.repo22.example.org is NXDOMAIN
+Sep 22 20:00:23 dnsmasq[925]: reply _https._tcp.repo23.example.org is NXDOMAIN
+Sep 22 20:00:24 dnsmasq[925]: reply _https._tcp.repo24.example.org is NXDOMAIN
+Sep 22 20:00:25 dnsmasq[925]: reply _https._tcp.repo25.example.org is NXDOMAIN
+Sep 22 20:00:26 dnsmasq[925]: reply _https._tcp.repo26.example.org is NXDOMAIN
+Sep 22 20:00:27 dnsmasq[925]: reply _https._tcp.repo27.example.org is NXDOMAIN
+Sep 22 20:00:28 dnsmasq[925]: reply _https._tcp.repo28.example.org is NXDOMAIN
+Sep 22 20:00:29 dnsmasq[925]: reply _https._tcp.repo29.example.org is NXDOMAIN

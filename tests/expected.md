@@ -37,3 +37,5 @@ Erzeugt mit `run-logtest.sh --table` – nicht von Hand pflegen.
 | `32-pihole-blocklist-beaconing.log` | 35x dieselbe geblockte Domain in unter 5 min zählt auf 110040 | 35 | 110010 110040 |
 | `33-pihole-doh.log` | Auflösung eines DoH-Endpunkts feuert 110050 | 1 | 110050 |
 | `34-pihole-abuse-tld.log` | Query auf Missbrauchs-TLD feuert 110060 | 1 | 110060 |
+| `35-pihole-nxdomain-svcb-negative.log` | Negativtest – SVCB/HTTPS-Lookups von apt (_https._tcp.*) zählen nicht auf den NXDOMAIN-Sturm 110031 | 30 | RECORD-ME |
+| `36-pihole-doh-reply-negative.log` | Negativtest – reply-Zeile zu einem DoH-Endpunkt erzeugt keinen zweiten 110050-Alert (nur die query-Zeile zählt) | 1 | RECORD-ME |
