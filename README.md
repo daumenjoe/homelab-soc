@@ -49,6 +49,7 @@ unbound/         Logging-Konfiguration und Logrotate für Unbound
 analytics/       pihole-analytics: Skript, Config, systemd-Units, Logrotate
 tests/           Testfälle und Runner für wazuh-logtest
 scripts/         collect / deploy / check-public / gen-rule-table
+integrations/    Wazuh Custom Integration -> DFIR-IRIS
 dashboards/      Wazuh-Dashboard als Saved-Objects-Import (.ndjson)
 docs/            DOKUMENTATION.md (ausführlich), RULES.md (generiert)
 TUNING.md        Triage-Protokoll: Finding -> Bewertung -> Maßnahme
@@ -87,9 +88,13 @@ Negativtests gehören dazu: interne Namen und CDN-Hosts dürfen die Gates nicht 
 
 Erstlauf von pihole-analytics: 20.931 Queries, 5 Findings, alle triagiert, 0 True Positives. Jede daraus abgeleitete Allowlist- oder Schwellwert-Änderung steht mit Begründung in [`TUNING.md`](TUNING.md). Die bekannten Stolperfallen (OSRegex ohne Alternation, CDB nur exakt, Level-Reihenfolge bei Kindregeln …) stehen in `docs/DOKUMENTATION.md`, Abschnitt 8.
 
+## Case Management
+
+Alerts der Regeln 110026, 110080 und 110099 (Level ≥ 10) landen per Wazuh Custom Integration als Alert in DFIR-IRIS, mit IOCs und vollem Kontext; siehe [`integrations/`](integrations/README.md).
+
 ## Roadmap
 
-- Case Management und SOAR: Wazuh-Alerts ab Level 10 per Webhook an Shuffle, dort Anreicherung (WHOIS, Threat Intel, Gerätename zur Client-IP), automatisches Anlegen eines Falls mit IOCs in DFIR-IRIS; LLM-Triage als späterer Schritt im selben Workflow
+- SOAR-Anreicherung: Shuffle zwischen Wazuh und IRIS (WHOIS, Threat Intel, Gerätename zur Client-IP); LLM-Triage als späterer Schritt im selben Workflow
 - Honeypot, Suricata, Velociraptor + Atomic Red Team, LLM-gestützte Triage
 
 ## Lizenz
