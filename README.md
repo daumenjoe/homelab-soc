@@ -89,6 +89,7 @@ Erstlauf von pihole-analytics: 20.931 Queries, 5 Findings, alle triagiert, 0 Tru
 
 ## Roadmap
 
+- Case Management und SOAR: Wazuh-Alerts ab Level 10 per Webhook an Shuffle, dort Anreicherung (WHOIS, Threat Intel, Gerätename zur Client-IP), automatisches Anlegen eines Falls mit IOCs in DFIR-IRIS; LLM-Triage als späterer Schritt im selben Workflow
 - Honeypot, Suricata, Velociraptor + Atomic Red Team, LLM-gestützte Triage
 
 ## Lizenz

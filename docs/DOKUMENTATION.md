@@ -335,3 +335,5 @@ Für das Gespräch taugt vor allem die Geschichte hinter dem Gate-Fehler: Was wa
 ## Lizenz und Attribution
 
 Dieses Projekt steht unter der MIT-Lizenz (siehe `LICENSE`). NRD data by [smet.cz](https://smet.cz/nrd/) (CC BY 4.0). Pi-hole, Unbound und Wazuh unter ihren jeweiligen Open-Source-Lizenzen.
+
+- Case Management und SOAR: Wazuh-Alerts ab Level 10 per Webhook an Shuffle, dort Anreicherung (WHOIS, Threat Intel, Gerätename zur Client-IP), automatisches Anlegen eines Falls mit IOCs in DFIR-IRIS; LLM-Triage als späterer Schritt im selben Workflow
