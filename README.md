@@ -49,6 +49,7 @@ unbound/         Logging-Konfiguration und Logrotate für Unbound
 analytics/       pihole-analytics: Skript, Config, systemd-Units, Logrotate
 tests/           Testfälle und Runner für wazuh-logtest
 scripts/         collect / deploy / check-public / gen-rule-table
+infra/           Mail-Relay (Postfix-LXC) fuer Benachrichtigungen
 integrations/    Wazuh Custom Integration -> DFIR-IRIS
 dashboards/      Wazuh-Dashboard als Saved-Objects-Import (.ndjson)
 docs/            DOKUMENTATION.md (ausführlich), RULES.md (generiert)
@@ -91,6 +92,10 @@ Erstlauf von pihole-analytics: 20.931 Queries, 5 Findings, alle triagiert, 0 Tru
 ## Case Management
 
 Alerts der Regeln 110026, 110080 und 110099 (Level ≥ 10) landen per Wazuh Custom Integration als Alert in DFIR-IRIS, mit IOCs und vollem Kontext; siehe [`integrations/`](integrations/README.md).
+
+## Benachrichtigungen
+
+Alerts ab Level 10 gehen zusätzlich per Mail raus (Wazuh `email_alert_level` 10) – über einen eigenen Postfix-Relay mit eigener Domain, DKIM-signiert; siehe [`infra/`](infra/README.md).
 
 ## Roadmap
 
