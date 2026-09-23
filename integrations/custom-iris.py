@@ -19,7 +19,7 @@ import urllib3
 urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 
 CUSTOMER_ID = 2          # IRIS: Manage -> Customers ("HomeLab")
-VERIFY_TLS = False       # self-signed IRIS certificate in the lab
+VERIFY_TLS = True        # Let's Encrypt via DNS-01, see infra/README.md
 TIMEOUT = 15
 LOG = "/var/ossec/logs/integrations.log"
 
@@ -106,7 +106,7 @@ def build_alert(alert, types, status_id):
         "alert_description": rule.get("description", ""),
         "alert_source": "Wazuh",
         "alert_source_ref": alert.get("id", ""),
-        "alert_source_link": "https://192.168.178.220/app/wazuh",
+        "alert_source_link": "https://wazuh.provinglab.de/app/wazuh",
         "alert_source_event_time": event_time,
         "alert_severity_id": severity(level),
         "alert_status_id": status_id,
