@@ -10,7 +10,11 @@ Installation auf dem Manager:
 
     install -o root -g wazuh -m 750 custom-iris.py /var/ossec/integrations/custom-iris
 
-`CUSTOMER_ID` im Skript an den IRIS-Kunden anpassen (`GET /manage/customers/list`).
+Konfiguration in `/var/ossec/etc/custom-iris.json` (root:wazuh 640, Vorlage `custom-iris.json.example`): IRIS-Kunden-ID, VirusTotal-Key, Dashboard-URL.
+
+**Anreicherung (v2):** Jeder Alert wird vor dem Anlegen angereichert – RDAP (Registrierungsdatum, Domainalter, Tag `nrd` unter 30 Tagen), VirusTotal (Engines-Statistik, Kategorien; Tag `vt-flagged`, ab drei Treffern eine Schweregradstufe höher), Reverse-DNS des Clients (Gerätename). Kurzfassung in der Beschreibung, alles Weitere im Alert-Kontext. Jede Quelle ist best-effort: fällt sie aus, steht der Grund im Kontext, der Alert kommt trotzdem an.
+
+**VirusTotal-Budget:** lokaler Zähler (`/var/ossec/var/custom-iris-vt.json`, dateigesperrt, damit parallele Läufe nicht überziehen) mit den Free-Tier-Grenzen 4/min und 500/Tag; bei Überschreitung wird VT übersprungen, ein HTTP 429 pausiert VT bis zum Tageswechsel. `custom-iris --vt-quota` fragt den echten Stand ab und gleicht den Zähler an.
 In der `ossec.conf` (API-Key nur dort, nie im Repo):
 
     <integration>
