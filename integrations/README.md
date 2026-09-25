@@ -14,6 +14,8 @@ Konfiguration in `/var/ossec/etc/custom-iris.json` (root:wazuh 640, Vorlage `cus
 
 **Anreicherung (v2):** Jeder Alert wird vor dem Anlegen angereichert – RDAP (Registrierungsdatum, Domainalter, Tag `nrd` unter 30 Tagen), VirusTotal (Engines-Statistik, Kategorien; Tag `vt-flagged`, ab drei Treffern eine Schweregradstufe höher), Reverse-DNS des Clients (Gerätename). Kurzfassung in der Beschreibung, alles Weitere im Alert-Kontext. Jede Quelle ist best-effort: fällt sie aus, steht der Grund im Kontext, der Alert kommt trotzdem an.
 
+**MISP (v2.2):** Domain und registrierbare Domain werden gegen gespeicherte Events (`/attributes/restSearch`) und den Feed-Cache (`/feeds/searchCaches`) geprüft. Treffer: Tag `misp-hit`, Schweregrad eine Stufe höher, Event-Titel mit Link im Kontext. Kein Treffer steht ebenfalls im Alert.
+
 **VirusTotal-Budget:** lokaler Zähler (`/var/ossec/var/custom-iris-vt.json`, dateigesperrt, damit parallele Läufe nicht überziehen) mit den Free-Tier-Grenzen 4/min und 500/Tag; bei Überschreitung wird VT übersprungen, ein HTTP 429 pausiert VT bis zum Tageswechsel. `custom-iris --vt-quota` fragt den echten Stand ab und gleicht den Zähler an.
 In der `ossec.conf` (API-Key nur dort, nie im Repo):
 

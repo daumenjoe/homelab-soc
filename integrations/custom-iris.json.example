@@ -1,2 +1,3 @@
 {"customer_id": 2, "vt_api_key": "<virustotal-api-key>", "dashboard_url": "https://wazuh.example/app/wazuh",
- "verify_tls": true, "nrd_days": 30, "vt_per_minute": 4, "vt_per_day": 500}
+ "verify_tls": true, "nrd_days": 30, "vt_per_minute": 4, "vt_per_day": 500,
+ "misp_url": "https://misp.example", "misp_api_key": "<misp-auth-key>", "misp_verify_tls": true}

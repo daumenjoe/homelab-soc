@@ -7,10 +7,12 @@ Enrichment (best-effort, short timeouts; a failure never blocks the alert):
   - RDAP:        registration date -> domain age in days      (no key needed)
   - VirusTotal:  last_analysis_stats, categories, reputation  (free API key)
   - Reverse DNS: PTR of the internal client -> device name    (via Pi-hole / router)
+  - MISP:        stored events and feed cache for domain / registrable domain
 
 Optional config /var/ossec/etc/custom-iris.json (root:wazuh 640):
   {"customer_id": 2, "vt_api_key": "...", "dashboard_url": "https://wazuh.example",
-   "verify_tls": true, "nrd_days": 30, "vt_per_minute": 4, "vt_per_day": 500}
+   "verify_tls": true, "nrd_days": 30, "vt_per_minute": 4, "vt_per_day": 500,
+   "misp_url": "https://misp.example", "misp_api_key": "...", "misp_verify_tls": true}
 
 Manual quota check (uses one request):  custom-iris --vt-quota
 
@@ -28,10 +30,11 @@ from pathlib import Path
 
 import requests
 
-VERSION = "2.1"
+VERSION = "2.2"
 CONFIG_PATH = "/var/ossec/etc/custom-iris.json"
 DEFAULTS = {"customer_id": 2, "vt_api_key": "", "dashboard_url": "https://wazuh.provinglab.de/app/wazuh",
-            "verify_tls": True, "nrd_days": 30, "vt_per_minute": 4, "vt_per_day": 500}
+            "verify_tls": True, "nrd_days": 30, "vt_per_minute": 4, "vt_per_day": 500,
+            "misp_url": "", "misp_api_key": "", "misp_verify_tls": True}
 VT_STATE = "/var/ossec/var/custom-iris-vt.json"   # local request counter, shared by parallel runs
 TIMEOUT = 15
 ENRICH_TIMEOUT = 8
@@ -192,6 +195,44 @@ def enrich_virustotal(regdom, api_key, quota):
         return {"virustotal": f"error: {type(exc).__name__}"}
 
 
+def enrich_misp(values, cfg):
+    """Look the indicators up in stored MISP events and in the feed cache."""
+    if not cfg["misp_url"] or not cfg["misp_api_key"]:
+        return {"misp": "not configured"}
+    base = cfg["misp_url"].rstrip("/")
+    headers = {"Authorization": cfg["misp_api_key"], "Accept": "application/json", "Content-Type": "application/json"}
+    verify = bool(cfg["misp_verify_tls"])
+    values = [v for v in dict.fromkeys(values) if v]
+    out = {"queried": values, "event_hits": 0, "events": [], "feed_hits": 0, "feeds": []}
+    try:
+        r = requests.post(f"{base}/attributes/restSearch", headers=headers, verify=verify, timeout=ENRICH_TIMEOUT,
+                          json={"returnFormat": "json", "value": values, "limit": 25, "includeEventTags": True})
+        r.raise_for_status()
+        attrs = r.json().get("response", {}).get("Attribute", [])
+        out["event_hits"] = len(attrs)
+        seen = {}
+        for a in attrs:
+            ev = a.get("Event", {})
+            seen.setdefault(ev.get("id"), {"event_id": ev.get("id"), "info": ev.get("info", "")[:100],
+                                            "type": a.get("type"), "to_ids": a.get("to_ids"),
+                                            "link": f"{base}/events/view/{ev.get('id')}"})
+        out["events"] = list(seen.values())[:5]
+    except Exception as exc:  # noqa: BLE001
+        out["events_error"] = f"{type(exc).__name__}"
+    try:
+        r = requests.post(f"{base}/feeds/searchCaches", headers=headers, verify=verify, timeout=ENRICH_TIMEOUT,
+                          json={"value": values})
+        r.raise_for_status()
+        hits = r.json() if isinstance(r.json(), list) else []
+        feeds = sorted({f.get("Feed", {}).get("name", "?") for h in hits for f in h.get("Feed", []) if isinstance(f, dict)}
+                       | {h.get("Feed", {}).get("name") for h in hits if isinstance(h.get("Feed"), dict)} - {None})
+        out["feed_hits"] = len(hits)
+        out["feeds"] = feeds[:8]
+    except Exception as exc:  # noqa: BLE001
+        out["feeds_error"] = f"{type(exc).__name__}"
+    return out
+
+
 def enrich_client(ip):
     try:
         socket.setdefaulttimeout(3)
@@ -230,7 +271,7 @@ def build_alert(alert, cfg, types, status_id):
 
     domain = pa.get("registrable") or pa.get("domain") or field(data, "dns.domain")
     regdom = pa.get("registrable") or domain
-    client = pa.get("client") or data.get("srcip") or field(data, "dns.client") or data.get("src_host")
+    client = pa.get("client") or data.get("srcip") or field(data, "dns.client")
     agent = field(alert, "agent.name", "manager")
 
     enrichment, tags, sev = {}, [], severity(level)
@@ -245,6 +286,11 @@ def build_alert(alert, cfg, types, status_id):
             tags.append("vt-flagged")
         if vt_mal >= 3 and sev < 6:
             sev += 1                      # several engines agree: one step up
+        enrichment["misp"] = enrich_misp([domain, regdom], cfg)
+        if enrichment["misp"].get("event_hits") or enrichment["misp"].get("feed_hits"):
+            tags.append("misp-hit")
+            if sev < 6:
+                sev += 1
     hostname = ""
     if client:
         hostname = enrich_client(client)["hostname"]
@@ -256,6 +302,9 @@ def build_alert(alert, cfg, types, status_id):
         summary.append(f"domain age {rd['age_days']} d" + (" (NRD)" if rd.get("newly_registered") else ""))
     if "malicious" in vt:
         summary.append(f"VirusTotal {vt['malicious']}/{vt['engines']} malicious")
+    mp = enrichment.get("misp", {})
+    if "event_hits" in mp:
+        summary.append(f"MISP {mp['event_hits']} event / {mp['feed_hits']} feed hits" + (f" ({', '.join(mp['feeds'][:3])})" if mp.get("feeds") else ""))
     if hostname:
         summary.append(f"client {hostname}")
 
@@ -298,7 +347,7 @@ def build_alert(alert, cfg, types, status_id):
         "alert_severity_id": sev,
         "alert_status_id": status_id,
         "alert_customer_id": cfg["customer_id"],
-        "alert_tags": ",".join(["wazuh", "honeypot" if str(rule.get("id", "")).startswith("1101") else "dns"] + [g for g in rule.get("groups", []) if g.startswith("dns_")] + tags),
+        "alert_tags": ",".join(["wazuh", "dns"] + [g for g in rule.get("groups", []) if g.startswith("dns_")] + tags),
         "alert_iocs": iocs,
         "alert_context": context,
         "alert_source_content": alert,
