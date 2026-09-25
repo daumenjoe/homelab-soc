@@ -230,7 +230,7 @@ def build_alert(alert, cfg, types, status_id):
 
     domain = pa.get("registrable") or pa.get("domain") or field(data, "dns.domain")
     regdom = pa.get("registrable") or domain
-    client = pa.get("client") or data.get("srcip") or field(data, "dns.client")
+    client = pa.get("client") or data.get("srcip") or field(data, "dns.client") or data.get("src_host")
     agent = field(alert, "agent.name", "manager")
 
     enrichment, tags, sev = {}, [], severity(level)
@@ -298,7 +298,7 @@ def build_alert(alert, cfg, types, status_id):
         "alert_severity_id": sev,
         "alert_status_id": status_id,
         "alert_customer_id": cfg["customer_id"],
-        "alert_tags": ",".join(["wazuh", "dns"] + [g for g in rule.get("groups", []) if g.startswith("dns_")] + tags),
+        "alert_tags": ",".join(["wazuh", "honeypot" if str(rule.get("id", "")).startswith("1101") else "dns"] + [g for g in rule.get("groups", []) if g.startswith("dns_")] + tags),
         "alert_iocs": iocs,
         "alert_context": context,
         "alert_source_content": alert,
