@@ -41,7 +41,7 @@ fetch_glob() {  # fetch_glob <host> <remote-glob> <local-dir>
 
 echo "== Wazuh-Manager ($MGR)"
 fetch_glob "$MGR" '/var/ossec/etc/decoders/01[0-9][0-9]-*.xml' "$REPO/decoders"
-fetch_glob "$MGR" '/var/ossec/etc/rules/01[0-9][0-9]-*.xml'    "$REPO/rules"
+fetch_glob "$MGR" '/var/ossec/etc/rules/0[19][0-9][0-9]-*.xml'    "$REPO/rules"
 fetch      "$MGR" '/var/ossec/etc/lists/dns-allow'             "$REPO/lists"
 fetch      "$MGR" "/var/ossec/etc/shared/$GROUP/agent.conf"    "$REPO/agent"
 

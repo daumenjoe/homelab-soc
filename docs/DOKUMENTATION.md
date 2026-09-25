@@ -290,6 +290,8 @@ Baseline: 20.931 Anfragen, 5 Findings, 0 True Positives. Der Beaconing-Detektor 
 - **OSRegex-Alternation ist nicht verlässlich.** Ein Child-Decoder pro Variante mit literalem Prematch ist robuster als `(a|b)`.
 - **Level-0-Kindregeln werden zuerst geprüft – und danach nur noch deren Kinder.** Eine Level-0-Gate-Regel, die fast alles matcht, verschluckt ihre Geschwister. Regeln, die auf beiden Pfaden gelten sollen, brauchen beide Eltern (`if_sid A, B`). Ohne Regressionstest fällt das nicht auf: „nichts kommt“ sieht aus wie „alles ruhig“.
 - **Level-0-Regeln taugen nicht als Zählbasis.** Wazuh merkt sich Level-0-Treffer nicht für `if_matched_sid`; eine Frequency-Regel darauf feuert nie. Basisregeln für Korrelation bekommen Level 2 – unter `log_alert_level`, also unsichtbar, aber zählbar.
+- **`negate` greift nur bei vorhandenem Feld.** Fehlt das Feld im Event, matcht die Regel nicht, auch nicht negiert. Für „alles außer X“ ein Feld wählen, das jedes Event trägt (beim Docker-Listener das Image, nicht das Compose-Label).
+- **Regeldateien werden über alle Verzeichnisse hinweg nach Namen sortiert geladen.** Eine Kindregel einer eingebauten Regel (z. B. Docker 87903 aus `0455-…`) muss in einer Datei mit höherer Nummer stehen, sonst „Signature ID not found“ und die Regel wird stillschweigend ignoriert.
 - **CDB-Listen matchen nur exakt.** Suffix-Familien brauchen eine Regex-Gate-Regel.
 - **Alerts unter `log_alert_level` (Standard 3) erscheinen nicht im Dashboard.** Level-2-Regeln existieren nur als Basis für Frequency-Korrelation.
 - **Neue `<localfile>` in der `agent.conf` brauchen bis zu 10 Minuten** für den Shared-Config-Sync; `grep "Analyzing file" ossec.log` auf dem Agent zeigt, ob die Datei gelesen wird.

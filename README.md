@@ -29,6 +29,7 @@ flowchart LR
 | Pi-hole Query-Log | `/var/log/pihole/pihole.log` | `0100-pihole_decoders.xml` | 110000–110060 | Blocks und Blocklist-Beaconing, TXT-Tunneling, NXDOMAIN-Sturm, DoH-Bypass, Heuristiken (überlange Labels, DGA-Muster, Missbrauchs-TLDs) |
 | Unbound | `/var/log/unbound/unbound.log` | `0101-unbound_decoders.xml` | 110070–110077 | DNSSEC-Validierungsfehler, SERVFAIL-Häufung, übergroße Antworten, langsame Auflösung, Resolver-Fehler und -Neustarts |
 | Hardware (Proxmox-Host) | `/var/log/hw-metrics/hw-metrics.log` | JSON | 110100–110111 | CPU-/NVMe-Temperatur, NVMe-SMART (Media-Errors, Reserve, Verschleiß, Selbsttest), volles Root-Dateisystem |
+| Docker (IRIS-Host) | Docker-Socket via Agent-Wodle | JSON | 110120 | Container-Start mit einem Image, das nicht zum ausgerollten Stack gehört |
 | pihole-analytics | FTL-Datenbank + NRD-Liste | JSON | 110080, 110090–110099 | Korrelation NRD + DGA/Beaconing/Tunneling pro Client, Tunneling (viele verschiedene lange Subdomains), Beaconing (auch auf geblockte Domains), DGA, NXDOMAIN-Sturm pro Client, Newly Registered Domains, Heartbeat und Selbstüberwachung |
 
 Vollständige Regelliste mit Leveln, Eltern und MITRE-Mapping: [`docs/RULES.md`](docs/RULES.md) (generiert).

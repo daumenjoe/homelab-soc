@@ -68,3 +68,9 @@ Erzeugt mit `scripts/gen-rule-table.py` – nicht von Hand pflegen.
 | 110109 | 7 | 110100 |  |  | hw: $(hw.host) root filesystem $(hw.root_used_pct)% full |
 | 110110 | 5 | 110100 |  |  | hw: $(hw.host) sensors collection error: $(hw.sensors_error) |
 | 110111 | 5 | 110100 |  |  | hw: $(hw.host) SMART collection error: $(hw.smart_error) |
+
+## `0900-docker_rules.xml`
+
+| ID | Level | Eltern | Frequenz | MITRE | Beschreibung |
+|---|---|---|---|---|---|
+| 110120 | 9 | 87903 |  | T1610, T1059 | Docker: unexpected container $(docker.Actor.Attributes.name) started on $(agent.name) from image $(docker.Actor.Attributes.image) - not part of the deployed compose project |

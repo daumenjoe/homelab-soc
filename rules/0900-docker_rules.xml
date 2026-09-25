@@ -1,0 +1,15 @@
+<group name="docker,homelab,">
+
+  <!-- Auf einem Host, dessen Container ausschliesslich aus einem Compose-Projekt kommen,
+       ist jeder andere Container-Start ungeplant. Geprueft wird das Image, weil es jeder Container
+       traegt (negate greift bei fehlendem Feld nicht). Image-Liste pro Host in der lokalen
+       Override-Datei anpassen (siehe 0109-local_overrides.xml.example). -->
+  <rule id="110120" level="9">
+    <if_sid>87903</if_sid>
+    <field name="docker.Actor.Attributes.image" negate="yes" type="pcre2">^(ghcr\.io/dfir-iris/|rabbitmq:)</field>
+    <description>Docker: unexpected container $(docker.Actor.Attributes.name) started on $(agent.name) from image $(docker.Actor.Attributes.image) - not part of the deployed compose project</description>
+    <mitre><id>T1610</id><id>T1059</id></mitre>
+    <group>docker_unexpected,</group>
+  </rule>
+
+</group>

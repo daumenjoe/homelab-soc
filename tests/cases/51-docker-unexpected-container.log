@@ -1,0 +1,3 @@
+# desc: Container-Start ohne Compose-Projekt feuert 110120 (Level 9)
+# expect: 110120
+{"integration": "docker", "docker": {"Type": "container", "Action": "start", "Actor": {"ID": "ad1a74f79381", "Attributes": {"image": "docker.io/library/alpine:latest", "name": "sneaky"}}, "scope": "local", "time": "1790361426"}}

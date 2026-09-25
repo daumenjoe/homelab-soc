@@ -50,3 +50,5 @@ Erzeugt mit `run-logtest.sh --table` – nicht von Hand pflegen.
 | `47-hw-smart-failed.log` | SMART failed feuert 110108 (Level 12) | 1 | 110108 |
 | `48-hw-root-full.log` | Root-FS 94 % feuert 110109 | 1 | 110109 |
 | `49-hw-sensors-error.log` | Sensorfehler feuert 110110 | 1 | 110110 |
+| `50-docker-compose-container.log` | Container-Start aus dem bekannten Compose-Projekt: nur die Standardregel 87903 | 1 | 87903 |
+| `51-docker-unexpected-container.log` | Container-Start ohne Compose-Projekt feuert 110120 (Level 9) | 1 | 110120 |
