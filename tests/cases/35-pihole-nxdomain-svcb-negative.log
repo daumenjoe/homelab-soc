@@ -1,5 +1,5 @@
 # desc: Negativtest – SVCB/HTTPS-Lookups von apt (_https._tcp.*) zählen nicht auf den NXDOMAIN-Sturm 110031
-# expect: RECORD-ME
+# expect: 110002
 Sep 22 20:00:00 dnsmasq[925]: reply _https._tcp.repo00.example.org is NXDOMAIN
 Sep 22 20:00:01 dnsmasq[925]: reply _https._tcp.repo01.example.org is NXDOMAIN
 Sep 22 20:00:02 dnsmasq[925]: reply _https._tcp.repo02.example.org is NXDOMAIN

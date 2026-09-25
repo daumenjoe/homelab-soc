@@ -1,3 +1,3 @@
 # desc: Negativtest – reply-Zeile zu einem DoH-Endpunkt erzeugt keinen zweiten 110050-Alert (nur die query-Zeile zählt)
-# expect: RECORD-ME
+# expect: 110002
 Sep 22 20:10:01 dnsmasq[925]: reply doh.example.org is 198.51.100.53
