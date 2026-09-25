@@ -8,9 +8,9 @@ export LANG=en_US.UTF-8
 python3 -m venv /opt/opencanary
 /opt/opencanary/bin/pip install -q --upgrade pip
 /opt/opencanary/bin/pip install -q opencanary scapy
-mkdir -p /var/log/opencanary /etc/opencanary
+mkdir -p /var/log/opencanary /etc/opencanaryd
 
-cat > /etc/opencanary/opencanary.conf <<'JSON'
+cat > /etc/opencanaryd/opencanary.conf <<'JSON'
 {
   "device.node_id": "canary",
   "ip.ignorelist": [],
@@ -45,7 +45,8 @@ Description=OpenCanary honeypot
 After=network-online.target
 Wants=network-online.target
 [Service]
-ExecStart=/opt/opencanary/bin/opencanaryd --dev
+ExecStart=/opt/opencanary/bin/opencanaryd --dev --uid=nobody --gid=nogroup
+AmbientCapabilities=CAP_NET_BIND_SERVICE
 Restart=always
 RestartSec=5
 Environment=LANG=en_US.UTF-8
@@ -57,6 +58,7 @@ cat > /etc/logrotate.d/opencanary <<'ROT'
 /var/log/opencanary/opencanary.log { weekly rotate 8 compress missingok notifempty copytruncate }
 ROT
 
+chown -R nobody:nogroup /var/log/opencanary && chmod 644 /etc/opencanaryd/opencanary.conf
 systemctl daemon-reload
 systemctl enable --now opencanary
 sleep 5
