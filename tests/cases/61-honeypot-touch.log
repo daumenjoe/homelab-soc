@@ -1,0 +1,4 @@
+# desc: Verbindung ohne Zugangsdaten (SSH-Banner, HTTP GET) feuert 110132
+# expect: 110132
+{"dst_host": "192.168.178.224", "dst_port": 22, "local_time": "2026-09-25 19:19:29.5", "logdata": {"SESSION": "0"}, "logtype": 4000, "node_id": "canary", "src_host": "192.168.178.201", "src_port": 52596, "utc_time": "2026-09-25 17:19:29.5"}
+{"dst_host": "192.168.178.224", "dst_port": 80, "local_time": "2026-09-25 19:19:29.5", "logdata": {"PATH": "/", "USERAGENT": "curl"}, "logtype": 3000, "node_id": "canary", "src_host": "192.168.178.201", "src_port": 52596, "utc_time": "2026-09-25 17:19:29.5"}

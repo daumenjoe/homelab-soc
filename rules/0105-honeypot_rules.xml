@@ -1,0 +1,57 @@
+<group name="honeypot,deception,">
+
+  <!-- OpenCanary-Logtypen: 1001 Start, 2000 FTP-Login, 3000 HTTP-Zugriff, 3001 HTTP-Login,
+       4000 SSH-Verbindung, 4001 SSH-Login? , 4002 SSH-Login-Versuch, 5000 Portscan, 6001 Telnet-Login,
+       8001 MySQL-Login, 12000 VNC, 13001 Redis. Niemand im Netz hat einen Grund, den Koeder anzufassen. -->
+
+  <rule id="110130" level="0">
+    <decoded_as>json</decoded_as>
+    <field name="node_id">\.+</field>
+    <field name="logtype">\d+</field>
+    <description>Honeypot event from $(node_id)</description>
+  </rule>
+
+  <rule id="110131" level="3">
+    <if_sid>110130</if_sid>
+    <field name="logtype" type="pcre2">^1001$</field>
+    <description>Honeypot $(node_id) started</description>
+  </rule>
+
+  <!-- Jede Verbindung ohne Zugangsdaten: Aufklaerung -->
+  <rule id="110132" level="8">
+    <if_sid>110130</if_sid>
+    <field name="logtype" type="pcre2">^(3000|4000|12000|13001)$</field>
+    <field name="src_host">\.+</field>
+    <description>Honeypot touched: $(src_host) connected to $(node_id) port $(dst_port)</description>
+    <mitre><id>T1046</id></mitre>
+    <group>honeypot_touch,</group>
+  </rule>
+
+  <!-- Login-Versuch mit Zugangsdaten: jemand probiert es wirklich -->
+  <rule id="110133" level="10">
+    <if_sid>110130</if_sid>
+    <field name="logtype" type="pcre2">^(2000|3001|4002|6001|8001)$</field>
+    <field name="src_host">\.+</field>
+    <description>Honeypot credential attempt: $(src_host) -> $(node_id) port $(dst_port) user '$(logdata.USERNAME)'</description>
+    <mitre><id>T1110</id><id>T1078</id></mitre>
+    <group>honeypot_credentials,</group>
+  </rule>
+
+  <!-- Wiederholte Versuche desselben Clients: Brute-Force -->
+  <rule id="110134" level="12" frequency="5" timeframe="300">
+    <if_matched_sid>110133</if_matched_sid>
+    <same_field>src_host</same_field>
+    <description>Honeypot brute force: $(src_host) made 5+ credential attempts against $(node_id) in 5 min</description>
+    <mitre><id>T1110.001</id></mitre>
+  </rule>
+
+  <!-- Portscan-Erkennung von OpenCanary -->
+  <rule id="110135" level="9">
+    <if_sid>110130</if_sid>
+    <field name="logtype" type="pcre2">^5\d\d\d$</field>
+    <field name="src_host">\.+</field>
+    <description>Honeypot portscan detected from $(src_host) ($(logdata.SCAN_TYPE))</description>
+    <mitre><id>T1046</id></mitre>
+  </rule>
+
+</group>

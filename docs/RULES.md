@@ -69,6 +69,17 @@ Erzeugt mit `scripts/gen-rule-table.py` – nicht von Hand pflegen.
 | 110110 | 5 | 110100 |  |  | hw: $(hw.host) sensors collection error: $(hw.sensors_error) |
 | 110111 | 5 | 110100 |  |  | hw: $(hw.host) SMART collection error: $(hw.smart_error) |
 
+## `0105-honeypot_rules.xml`
+
+| ID | Level | Eltern | Frequenz | MITRE | Beschreibung |
+|---|---|---|---|---|---|
+| 110130 | 0 |  |  |  | Honeypot event from $(node_id) |
+| 110131 | 3 | 110130 |  |  | Honeypot $(node_id) started |
+| 110132 | 8 | 110130 |  | T1046 | Honeypot touched: $(src_host) connected to $(node_id) port $(dst_port) |
+| 110133 | 10 | 110130 |  | T1110, T1078 | Honeypot credential attempt: $(src_host) -> $(node_id) port $(dst_port) user '$(logdata.USERNAME)' |
+| 110134 | 12 | 110133 (freq) | 5× / 300 s | T1110.001 | Honeypot brute force: $(src_host) made 5+ credential attempts against $(node_id) in 5 min |
+| 110135 | 9 | 110130 |  | T1046 | Honeypot portscan detected from $(src_host) ($(logdata.SCAN_TYPE)) |
+
 ## `0900-docker_rules.xml`
 
 | ID | Level | Eltern | Frequenz | MITRE | Beschreibung |

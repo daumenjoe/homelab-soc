@@ -52,3 +52,8 @@ Erzeugt mit `run-logtest.sh --table` – nicht von Hand pflegen.
 | `49-hw-sensors-error.log` | Sensorfehler feuert 110110 | 1 | 110110 |
 | `50-docker-compose-container.log` | Container-Start aus dem bekannten Compose-Projekt: nur die Standardregel 87903 | 1 | 87903 |
 | `51-docker-unexpected-container.log` | Container-Start ohne Compose-Projekt feuert 110120 (Level 9) | 1 | 110120 |
+| `60-honeypot-start.log` | Honeypot-Start: nur Info 110131 | 1 | 110131 |
+| `61-honeypot-touch.log` | Verbindung ohne Zugangsdaten (SSH-Banner, HTTP GET) feuert 110132 | 2 | 110132 |
+| `62-honeypot-credentials.log` | Login-Versuch mit Zugangsdaten feuert 110133 (Level 10) | 1 | 110133 |
+| `63-honeypot-bruteforce.log` | 6 Login-Versuche eines Clients in 5 min zaehlen auf 110134 (Level 12) | 6 | 110133 110134 |
+| `64-honeypot-portscan.log` | OpenCanary-Portscan-Event feuert 110135 | 1 | 110135 |

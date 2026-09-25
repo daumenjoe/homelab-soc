@@ -1,0 +1,3 @@
+# desc: Honeypot-Start: nur Info 110131
+# expect: 110131
+{"dst_host": "", "dst_port": -1, "local_time": "x", "logdata": {"msg": {"logdata": "Canary running!!!"}}, "logtype": 1001, "node_id": "canary", "src_host": "", "src_port": -1}

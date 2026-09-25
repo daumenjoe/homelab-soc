@@ -1,0 +1,3 @@
+# desc: OpenCanary-Portscan-Event feuert 110135
+# expect: 110135
+{"dst_host": "192.168.178.224", "dst_port": -1, "local_time": "2026-09-25 19:19:29.5", "logdata": {"SCAN_TYPE": "SYN"}, "logtype": 5001, "node_id": "canary", "src_host": "192.168.178.201", "src_port": 52596, "utc_time": "2026-09-25 17:19:29.5"}

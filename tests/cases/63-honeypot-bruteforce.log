@@ -1,0 +1,8 @@
+# desc: 6 Login-Versuche eines Clients in 5 min zaehlen auf 110134 (Level 12)
+# expect: 110133 110134
+{"dst_host": "192.168.178.224", "dst_port": 22, "local_time": "2026-09-25 19:19:29.5", "logdata": {"USERNAME": "user0", "PASSWORD": "x"}, "logtype": 4002, "node_id": "canary", "src_host": "192.168.178.201", "src_port": 52596, "utc_time": "2026-09-25 17:19:29.5"}
+{"dst_host": "192.168.178.224", "dst_port": 22, "local_time": "2026-09-25 19:19:29.5", "logdata": {"USERNAME": "user1", "PASSWORD": "x"}, "logtype": 4002, "node_id": "canary", "src_host": "192.168.178.201", "src_port": 52596, "utc_time": "2026-09-25 17:19:29.5"}
+{"dst_host": "192.168.178.224", "dst_port": 22, "local_time": "2026-09-25 19:19:29.5", "logdata": {"USERNAME": "user2", "PASSWORD": "x"}, "logtype": 4002, "node_id": "canary", "src_host": "192.168.178.201", "src_port": 52596, "utc_time": "2026-09-25 17:19:29.5"}
+{"dst_host": "192.168.178.224", "dst_port": 22, "local_time": "2026-09-25 19:19:29.5", "logdata": {"USERNAME": "user3", "PASSWORD": "x"}, "logtype": 4002, "node_id": "canary", "src_host": "192.168.178.201", "src_port": 52596, "utc_time": "2026-09-25 17:19:29.5"}
+{"dst_host": "192.168.178.224", "dst_port": 22, "local_time": "2026-09-25 19:19:29.5", "logdata": {"USERNAME": "user4", "PASSWORD": "x"}, "logtype": 4002, "node_id": "canary", "src_host": "192.168.178.201", "src_port": 52596, "utc_time": "2026-09-25 17:19:29.5"}
+{"dst_host": "192.168.178.224", "dst_port": 22, "local_time": "2026-09-25 19:19:29.5", "logdata": {"USERNAME": "user5", "PASSWORD": "x"}, "logtype": 4002, "node_id": "canary", "src_host": "192.168.178.201", "src_port": 52596, "utc_time": "2026-09-25 17:19:29.5"}
