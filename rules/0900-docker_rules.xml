@@ -12,4 +12,12 @@
     <group>docker_unexpected,</group>
   </rule>
 
+  <!-- Docker-Healthchecks laufen als exec im Container und erzeugen im Sekundentakt Events.
+       Typische Probe-Idiome verschlucken; eine echte Shell (exec_start: bash) bleibt sichtbar. -->
+  <rule id="110121" level="0">
+    <if_group>docker</if_group>
+    <field name="docker.Action" type="pcre2">^exec_(create|start|die): .*(/dev/tcp/|curl (-f|--fail)|wget --spider|healthcheck|pg_isready|mysqladmin ping|redis-cli ping|nc -z)</field>
+    <description>Docker: healthcheck exec (suppressed)</description>
+  </rule>
+
 </group>

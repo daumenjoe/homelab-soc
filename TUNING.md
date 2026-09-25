@@ -112,3 +112,8 @@ Domains sind in diesem Protokoll bewusst nur als Kategorie genannt.
 **Bewertung:** DGA-Domains haben immer eine TLD; Namen ohne TLD und IPs-als-Name sind nie Kandidaten. Video-CDN-Retries sind CDN-Alltag.
 **Maßnahme:** Zählbasis 110030 schließt zusätzlich Namen ohne TLD, IPs als Name und den Video-CDN-Suffix aus (Testfall 37). Positivtest 31 bleibt grün.
 **Beaconing 110091:** zwei Treffer eines Laptops beim Video-Streaming (Telemetrie- und CDN-Endpunkt des Anbieters, 60-s-Takt über die Sitzungsdauer); als Einzelhost bzw. Suffix in die Analytics-Allowlist, beide Namensräume nicht mietbar.
+
+### Befund 14: Docker-Listener – Healthchecks als Dauerrauschen (2026-09-25)
+
+**Analyse:** 473 Events der Regel 87907 in einer Stunde vom MISP-Host: Docker-Healthchecks laufen als `exec` im Container (TCP-Probe auf den eigenen Port) und der Listener meldet jeden.
+**Maßnahme:** Level-0-Kindregel 110121 verschluckt `exec`-Events mit typischen Healthcheck-Idiomen (`/dev/tcp/`, `curl -f`, `wget --spider`, `pg_isready`, `redis-cli ping` …). Eine echte Shell im Container (`exec_start: bash`) bleibt sichtbar (Testfälle 52/53). Muster statt Containername, damit es für alle Docker-Hosts gilt.

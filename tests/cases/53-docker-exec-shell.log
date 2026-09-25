@@ -1,0 +1,3 @@
+# desc: Echte Shell im Container bleibt sichtbar (Standardregel)
+# expect: 87907
+{"integration": "docker", "docker": {"Type": "container", "Action": "exec_start: bash", "Actor": {"ID": "ad1a74f79381", "Attributes": {"image": "ghcr.io/misp/misp-docker/misp-core:v2.5.47", "name": "misp-docker-misp-core-1", "execID": "abc"}}, "scope": "local", "time": "1790361426"}}
