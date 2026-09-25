@@ -73,4 +73,4 @@ Erzeugt mit `scripts/gen-rule-table.py` – nicht von Hand pflegen.
 
 | ID | Level | Eltern | Frequenz | MITRE | Beschreibung |
 |---|---|---|---|---|---|
-| 110120 | 9 | 87903 |  | T1610, T1059 | Docker: unexpected container $(docker.Actor.Attributes.name) started on $(agent.name) from image $(docker.Actor.Attributes.image) - not part of the deployed compose project |
+| 110120 | 9 | 87903 |  | T1610, T1059 | Docker: unexpected container $(docker.Actor.Attributes.name) started from image $(docker.Actor.Attributes.image) - not part of the deployed compose project |
