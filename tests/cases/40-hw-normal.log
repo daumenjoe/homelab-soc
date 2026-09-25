@@ -1,0 +1,3 @@
+# desc: Normale Hardware-Werte: nur Heartbeat 110101
+# expect: 110101
+{"hw": {"host": "pve", "time": "2026-09-25T20:17:06+0200", "cpu_temp_c": 46.0, "cpu_core_max_c": 43.0, "nvme": {"temp_c": 37, "percentage_used": 0, "available_spare": 100, "media_errors": 0, "power_on_hours": 2670, "critical_warning": 0, "smart_passed": true}, "load5": 0.26, "root_used_pct": 6.2}}

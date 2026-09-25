@@ -40,3 +40,13 @@ Erzeugt mit `run-logtest.sh --table` – nicht von Hand pflegen.
 | `35-pihole-nxdomain-svcb-negative.log` | Negativtest – SVCB/HTTPS-Lookups von apt (_https._tcp.*) zählen nicht auf den NXDOMAIN-Sturm 110031 | 30 | 110002 |
 | `36-pihole-doh-reply-negative.log` | Negativtest – reply-Zeile zu einem DoH-Endpunkt erzeugt keinen zweiten 110050-Alert (nur die query-Zeile zählt) | 1 | 110002 |
 | `37-pihole-nxdomain-junk-negative.log` | Negativtest – NXDOMAIN auf Namen ohne TLD, IP-als-Name und Video-CDN-Server zählen nicht auf 110031 | 30 | 110002 |
+| `40-hw-normal.log` | Normale Hardware-Werte: nur Heartbeat 110101 | 1 | 110101 |
+| `41-hw-cpu-warn.log` | CPU 85 C feuert 110102 (Warnung) | 1 | 110102 |
+| `42-hw-cpu-crit.log` | CPU 95 C feuert 110103 (kritisch) | 1 | 110103 |
+| `43-hw-nvme-temp.log` | NVMe 74 C feuert 110104 | 1 | 110104 |
+| `44-hw-nvme-media-errors.log` | Media-Errors > 0 feuern 110105 | 1 | 110105 |
+| `45-hw-nvme-spare.log` | Available spare 12 % feuert 110106 | 1 | 110106 |
+| `46-hw-nvme-wear.log` | Verschleiss 93 % feuert 110107 | 1 | 110107 |
+| `47-hw-smart-failed.log` | SMART failed feuert 110108 (Level 12) | 1 | 110108 |
+| `48-hw-root-full.log` | Root-FS 94 % feuert 110109 | 1 | 110109 |
+| `49-hw-sensors-error.log` | Sensorfehler feuert 110110 | 1 | 110110 |

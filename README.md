@@ -28,6 +28,7 @@ flowchart LR
 |---|---|---|---|---|
 | Pi-hole Query-Log | `/var/log/pihole/pihole.log` | `0100-pihole_decoders.xml` | 110000–110060 | Blocks und Blocklist-Beaconing, TXT-Tunneling, NXDOMAIN-Sturm, DoH-Bypass, Heuristiken (überlange Labels, DGA-Muster, Missbrauchs-TLDs) |
 | Unbound | `/var/log/unbound/unbound.log` | `0101-unbound_decoders.xml` | 110070–110077 | DNSSEC-Validierungsfehler, SERVFAIL-Häufung, übergroße Antworten, langsame Auflösung, Resolver-Fehler und -Neustarts |
+| Hardware (Proxmox-Host) | `/var/log/hw-metrics/hw-metrics.log` | JSON | 110100–110111 | CPU-/NVMe-Temperatur, NVMe-SMART (Media-Errors, Reserve, Verschleiß, Selbsttest), volles Root-Dateisystem |
 | pihole-analytics | FTL-Datenbank + NRD-Liste | JSON | 110080, 110090–110099 | Korrelation NRD + DGA/Beaconing/Tunneling pro Client, Tunneling (viele verschiedene lange Subdomains), Beaconing (auch auf geblockte Domains), DGA, NXDOMAIN-Sturm pro Client, Newly Registered Domains, Heartbeat und Selbstüberwachung |
 
 Vollständige Regelliste mit Leveln, Eltern und MITRE-Mapping: [`docs/RULES.md`](docs/RULES.md) (generiert).
@@ -49,7 +50,7 @@ unbound/         Logging-Konfiguration und Logrotate für Unbound
 analytics/       pihole-analytics: Skript, Config, systemd-Units, Logrotate
 tests/           Testfälle und Runner für wazuh-logtest
 scripts/         collect / deploy / check-public / gen-rule-table
-infra/           Mail-Relay (Postfix-LXC) fuer Benachrichtigungen
+infra/           Mail-Relay, hw-metrics (Sensor-Skript + systemd-Timer fuer den Proxmox-Host) (Postfix-LXC) fuer Benachrichtigungen
 integrations/    Wazuh Custom Integration -> DFIR-IRIS
 dashboards/      Wazuh-Dashboard als Saved-Objects-Import (.ndjson)
 docs/            DOKUMENTATION.md (ausführlich), RULES.md (generiert)

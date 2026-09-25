@@ -51,3 +51,20 @@ Erzeugt mit `scripts/gen-rule-table.py` – nicht von Hand pflegen.
 | 110098 | 4 | 110096 |  |  | pihole-analytics running without NRD list - NRD detection inactive |
 | 110099 | 12 | 110090 |  | T1568.002, T1071.004, T1583.001 | Correlated DNS findings: $(pihole_analytics.client) -> $(pihole_analytics.registrable) ($(pihole_analytics.signals)) |
 | 110080 | 10 | 110090 |  | T1071.004, T1048.003 | DNS tunneling suspected: $(pihole_analytics.client) -> $(pihole_analytics.registrable) ($(pihole_analytics.unique_long) unique long subdomains, $(pihole_analytics.payload_chars) chars, new-name ratio $(pihole_analytics.new_ratio)) |
+
+## `0103-hw_metrics_rules.xml`
+
+| ID | Level | Eltern | Frequenz | MITRE | Beschreibung |
+|---|---|---|---|---|---|
+| 110100 | 0 |  |  |  | Hardware metrics event from $(hw.host) |
+| 110101 | 1 | 110100 |  |  | hw: $(hw.host) cpu $(hw.cpu_temp_c)C, nvme $(hw.nvme.temp_c)C, load5 $(hw.load5), root $(hw.root_used_pct)% |
+| 110102 | 7 | 110100 |  |  | hw: $(hw.host) CPU temperature high: $(hw.cpu_temp_c)C |
+| 110103 | 10 | 110102 |  |  | hw: $(hw.host) CPU temperature critical: $(hw.cpu_temp_c)C - thermal throttling imminent |
+| 110104 | 7 | 110100 |  |  | hw: $(hw.host) NVMe temperature high: $(hw.nvme.temp_c)C |
+| 110105 | 10 | 110100 |  |  | hw: $(hw.host) NVMe reports $(hw.nvme.media_errors) media errors - check SMART, plan replacement |
+| 110106 | 9 | 110100 |  |  | hw: $(hw.host) NVMe available spare down to $(hw.nvme.available_spare)% - replace soon |
+| 110107 | 8 | 110100 |  |  | hw: $(hw.host) NVMe wear at $(hw.nvme.percentage_used)% of rated endurance |
+| 110108 | 12 | 110100 |  |  | hw: $(hw.host) NVMe SMART self-assessment FAILED |
+| 110109 | 7 | 110100 |  |  | hw: $(hw.host) root filesystem $(hw.root_used_pct)% full |
+| 110110 | 5 | 110100 |  |  | hw: $(hw.host) sensors collection error: $(hw.sensors_error) |
+| 110111 | 5 | 110100 |  |  | hw: $(hw.host) SMART collection error: $(hw.smart_error) |

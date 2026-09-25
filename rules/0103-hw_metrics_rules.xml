@@ -1,0 +1,80 @@
+<group name="hw,proxmox,">
+
+  <rule id="110100" level="0">
+    <decoded_as>json</decoded_as>
+    <field name="hw.host">\.+</field>
+    <description>Hardware metrics event from $(hw.host)</description>
+  </rule>
+
+  <!-- Heartbeat: unter log_alert_level, nur fuer Verlauf im Index -->
+  <rule id="110101" level="1">
+    <if_sid>110100</if_sid>
+    <field name="hw.cpu_temp_c">\.+</field>
+    <description>hw: $(hw.host) cpu $(hw.cpu_temp_c)C, nvme $(hw.nvme.temp_c)C, load5 $(hw.load5), root $(hw.root_used_pct)%</description>
+  </rule>
+
+  <!-- CPU-Temperatur: Warnung ab 80, Alarm ab 90 (Package high = 84, crit = 100) -->
+  <rule id="110102" level="7">
+    <if_sid>110100</if_sid>
+    <field name="hw.cpu_temp_c" type="pcre2">^(8\d|9\d|1\d\d)(\.\d+)?$</field>
+    <description>hw: $(hw.host) CPU temperature high: $(hw.cpu_temp_c)C</description>
+  </rule>
+
+  <rule id="110103" level="10">
+    <if_sid>110102</if_sid>
+    <field name="hw.cpu_temp_c" type="pcre2">^(9\d|1\d\d)(\.\d+)?$</field>
+    <description>hw: $(hw.host) CPU temperature critical: $(hw.cpu_temp_c)C - thermal throttling imminent</description>
+  </rule>
+
+  <!-- NVMe-Temperatur ab 70 -->
+  <rule id="110104" level="7">
+    <if_sid>110100</if_sid>
+    <field name="hw.nvme.temp_c" type="pcre2">^([7-9]\d|1\d\d)$</field>
+    <description>hw: $(hw.host) NVMe temperature high: $(hw.nvme.temp_c)C</description>
+  </rule>
+
+  <!-- NVMe-Gesundheit -->
+  <rule id="110105" level="10">
+    <if_sid>110100</if_sid>
+    <field name="hw.nvme.media_errors" type="pcre2">^[1-9]\d*$</field>
+    <description>hw: $(hw.host) NVMe reports $(hw.nvme.media_errors) media errors - check SMART, plan replacement</description>
+  </rule>
+
+  <rule id="110106" level="9">
+    <if_sid>110100</if_sid>
+    <field name="hw.nvme.available_spare" type="pcre2">^(1?\d)$</field>
+    <description>hw: $(hw.host) NVMe available spare down to $(hw.nvme.available_spare)% - replace soon</description>
+  </rule>
+
+  <rule id="110107" level="8">
+    <if_sid>110100</if_sid>
+    <field name="hw.nvme.percentage_used" type="pcre2">^(9\d|[1-9]\d\d)$</field>
+    <description>hw: $(hw.host) NVMe wear at $(hw.nvme.percentage_used)% of rated endurance</description>
+  </rule>
+
+  <rule id="110108" level="12">
+    <if_sid>110100</if_sid>
+    <field name="hw.nvme.smart_passed">^false$</field>
+    <description>hw: $(hw.host) NVMe SMART self-assessment FAILED</description>
+  </rule>
+
+  <!-- Betrieb -->
+  <rule id="110109" level="7">
+    <if_sid>110100</if_sid>
+    <field name="hw.root_used_pct" type="pcre2">^(9\d|100)(\.\d+)?$</field>
+    <description>hw: $(hw.host) root filesystem $(hw.root_used_pct)% full</description>
+  </rule>
+
+  <rule id="110110" level="5">
+    <if_sid>110100</if_sid>
+    <field name="hw.sensors_error">\.+</field>
+    <description>hw: $(hw.host) sensors collection error: $(hw.sensors_error)</description>
+  </rule>
+
+  <rule id="110111" level="5">
+    <if_sid>110100</if_sid>
+    <field name="hw.smart_error">\.+</field>
+    <description>hw: $(hw.host) SMART collection error: $(hw.smart_error)</description>
+  </rule>
+
+</group>
