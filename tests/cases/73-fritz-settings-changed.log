@@ -1,0 +1,3 @@
+# desc: Einstellungsaenderung feuert 110145
+# expect: 110145
+{"fritz": {"kind": "log", "time": "2026-09-26T21:20:00+0200", "category": "settings_changed", "box_time": "26.09.26 21:19:00", "msg": "Die FRITZ!Box-Einstellungen wurden über die Benutzeroberfläche geändert.", "msg_id": "1"}}

@@ -1,0 +1,8 @@
+# desc: 6 fehlgeschlagene Logins in 15 min zaehlen auf 110143
+# expect: 110142 110143
+{"fritz": {"kind": "log", "time": "2026-09-26T21:20:00+0200", "category": "app_login_failed", "box_time": "26.09.26 21:19:00", "msg": "Anmeldung einer App mit unbekanntem Anmeldenamen von IP-Adresse 192.168.178.99 gescheitert. [0]", "msg_id": "1"}}
+{"fritz": {"kind": "log", "time": "2026-09-26T21:20:00+0200", "category": "app_login_failed", "box_time": "26.09.26 21:19:00", "msg": "Anmeldung einer App mit unbekanntem Anmeldenamen von IP-Adresse 192.168.178.99 gescheitert. [1]", "msg_id": "1"}}
+{"fritz": {"kind": "log", "time": "2026-09-26T21:20:00+0200", "category": "app_login_failed", "box_time": "26.09.26 21:19:00", "msg": "Anmeldung einer App mit unbekanntem Anmeldenamen von IP-Adresse 192.168.178.99 gescheitert. [2]", "msg_id": "1"}}
+{"fritz": {"kind": "log", "time": "2026-09-26T21:20:00+0200", "category": "app_login_failed", "box_time": "26.09.26 21:19:00", "msg": "Anmeldung einer App mit unbekanntem Anmeldenamen von IP-Adresse 192.168.178.99 gescheitert. [3]", "msg_id": "1"}}
+{"fritz": {"kind": "log", "time": "2026-09-26T21:20:00+0200", "category": "app_login_failed", "box_time": "26.09.26 21:19:00", "msg": "Anmeldung einer App mit unbekanntem Anmeldenamen von IP-Adresse 192.168.178.99 gescheitert. [4]", "msg_id": "1"}}
+{"fritz": {"kind": "log", "time": "2026-09-26T21:20:00+0200", "category": "app_login_failed", "box_time": "26.09.26 21:19:00", "msg": "Anmeldung einer App mit unbekanntem Anmeldenamen von IP-Adresse 192.168.178.99 gescheitert. [5]", "msg_id": "1"}}

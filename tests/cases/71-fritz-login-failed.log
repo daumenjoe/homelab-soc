@@ -1,0 +1,3 @@
+# desc: Fehlgeschlagener Router-Login feuert 110142
+# expect: 110142
+{"fritz": {"kind": "log", "time": "2026-09-26T21:20:00+0200", "category": "ui_login_failed", "box_time": "26.09.26 21:19:00", "msg": "Anmeldung des Benutzers admin an der FRITZ!Box-Benutzeroberfläche von IP-Adresse 192.168.178.99 gescheitert (falsches Kennwort).", "msg_id": "1"}}

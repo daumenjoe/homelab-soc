@@ -1,0 +1,3 @@
+# desc: Neue Port-Freigabe (TR-064-Diff) feuert 110146 (Level 10)
+# expect: 110146
+{"fritz": {"kind": "port_forwarding", "time": "2026-09-26T21:20:00+0200", "change": "added", "ext_port": "3389", "proto": "TCP", "int_port": "3389", "client": "192.168.178.99", "enabled": true, "desc": "rdp"}}

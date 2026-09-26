@@ -1,0 +1,3 @@
+# desc: Internetverbindung getrennt feuert 110152
+# expect: 110152
+{"fritz": {"kind": "log", "time": "2026-09-26T21:20:00+0200", "category": "wan_down", "box_time": "26.09.26 21:19:00", "msg": "Internetverbindung wurde getrennt.", "msg_id": "1"}}

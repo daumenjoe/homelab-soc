@@ -10,6 +10,7 @@ Ein Fall pro Datei, Nummernkreise wie bei den Regeln:
 | `4x` | Hardware-Metriken des Proxmox-Hosts (JSON) |
 | `5x` | Docker-Listener-Events (JSON) |
 | `6x` | OpenCanary-Honeypot (JSON) |
+| `7x` | FRITZ!Box-Monitor (JSON) |
 
 Neuen Fall anlegen: Zeilen aus dem echten Log kopieren, Domains bei Bedarf
 neutralisieren, `# desc:` setzen, dann `../run-logtest.sh --record <datei>`

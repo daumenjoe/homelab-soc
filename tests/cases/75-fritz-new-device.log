@@ -1,0 +1,3 @@
+# desc: Neues Geraet feuert 110148
+# expect: 110148
+{"fritz": {"kind": "new_device", "time": "2026-09-26T21:20:00+0200", "mac": "02:00:00:AA:BB:CC", "ip": "192.168.178.99", "name": "unknown-device", "iface": "802.11", "active": true}}

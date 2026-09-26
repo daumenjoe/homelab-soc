@@ -1,0 +1,3 @@
+# desc: Heartbeat: nur 110141
+# expect: 110141
+{"fritz": {"kind": "heartbeat", "time": "2026-09-26T21:20:00+0200", "hosts_total": 59, "hosts_active": 19, "portmappings": 0, "wan": {"status": "Connected", "uptime_s": 1000, "external_ip": "198.51.100.7"}, "errors": null}}

@@ -1,0 +1,3 @@
+# desc: VPN-Verbindung feuert 110153
+# expect: 110153
+{"fritz": {"kind": "log", "time": "2026-09-26T21:20:00+0200", "category": "vpn", "box_time": "26.09.26 21:19:00", "msg": "Es wurde erfolgreich eine WireGuard-Verbindung zur Gegenstelle \"home\" (198.51.100.20:33454) aufgebaut.", "msg_id": "1"}}

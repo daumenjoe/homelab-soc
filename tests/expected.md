@@ -59,3 +59,13 @@ Erzeugt mit `run-logtest.sh --table` – nicht von Hand pflegen.
 | `62-honeypot-credentials.log` | Login-Versuch mit Zugangsdaten feuert 110133 (Level 10) | 1 | 110133 |
 | `63-honeypot-bruteforce.log` | 6 Login-Versuche eines Clients in 5 min zaehlen auf 110134 (Level 12) | 6 | 110133 110134 |
 | `64-honeypot-portscan.log` | OpenCanary-Portscan-Event feuert 110135 | 1 | 110135 |
+| `70-fritz-heartbeat.log` | Heartbeat: nur 110141 | 1 | 110141 |
+| `71-fritz-login-failed.log` | Fehlgeschlagener Router-Login feuert 110142 | 1 | 110142 |
+| `72-fritz-login-bruteforce.log` | 6 fehlgeschlagene Logins in 15 min zaehlen auf 110143 | 6 | 110142 110143 |
+| `73-fritz-settings-changed.log` | Einstellungsaenderung feuert 110145 | 1 | 110145 |
+| `74-fritz-portforwarding.log` | Neue Port-Freigabe (TR-064-Diff) feuert 110146 (Level 10) | 1 | 110146 |
+| `75-fritz-new-device.log` | Neues Geraet feuert 110148 | 1 | 110148 |
+| `76-fritz-wlan-auth-failed.log` | WLAN-Anmeldung mit falschem Kennwort feuert 110149 | 1 | 110149 |
+| `77-fritz-vpn.log` | VPN-Verbindung feuert 110153 | 1 | 110153 |
+| `78-fritz-wan-down.log` | Internetverbindung getrennt feuert 110152 | 1 | 110152 |
+| `79-fritz-login-ok.log` | Erfolgreicher Login ist Info (110144) | 1 | 110144 |

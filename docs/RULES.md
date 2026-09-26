@@ -80,6 +80,27 @@ Erzeugt mit `scripts/gen-rule-table.py` – nicht von Hand pflegen.
 | 110134 | 12 | 110133 (freq) | 5× / 300 s | T1110.001 | Honeypot brute force: $(src_host) made 5+ credential attempts against $(node_id) in 5 min |
 | 110135 | 9 | 110130 |  | T1046 | Honeypot portscan detected from $(src_host) ($(logdata.SCAN_TYPE)) |
 
+## `0106-fritzbox_rules.xml`
+
+| ID | Level | Eltern | Frequenz | MITRE | Beschreibung |
+|---|---|---|---|---|---|
+| 110140 | 0 |  |  |  | FRITZ!Box monitor event |
+| 110141 | 1 | 110140 |  |  | fritz: heartbeat, $(fritz.hosts_active)/$(fritz.hosts_total) hosts active, WAN $(fritz.wan.status) |
+| 110142 | 7 | 110140 |  | T1110 | fritz: failed login to the router: $(fritz.msg) |
+| 110143 | 10 | 110142 (freq) | 5× / 900 s | T1110.001 | fritz: 5+ failed router logins in 15 min - brute force against the FRITZ!Box |
+| 110144 | 3 | 110140 |  |  | fritz: login to the router: $(fritz.msg) |
+| 110145 | 7 | 110140 |  | T1562 | fritz: router settings changed: $(fritz.msg) |
+| 110146 | 10 | 110140 |  | T1090, T1133 | fritz: port forwarding $(fritz.change): $(fritz.proto)/$(fritz.ext_port) -> $(fritz.client):$(fritz.int_port) ($(fritz.desc)) |
+| 110147 | 8 | 110140 |  | T1133 | fritz: port forwarding event in router log: $(fritz.msg) |
+| 110148 | 6 | 110140 |  | T1200 | fritz: new device in the network: $(fritz.name) ($(fritz.mac), $(fritz.ip), $(fritz.iface)) |
+| 110149 | 6 | 110140 |  | T1110 | fritz: WLAN authentication failed: $(fritz.msg) |
+| 110150 | 3 | 110140 |  |  | fritz: $(fritz.category): $(fritz.msg) |
+| 110151 | 5 | 110140 |  |  | fritz: external IP changed $(fritz.old) -> $(fritz.new) |
+| 110152 | 5 | 110140 |  |  | fritz: $(fritz.category): $(fritz.msg) |
+| 110153 | 5 | 110140 |  | T1133 | fritz: VPN event: $(fritz.msg) |
+| 110154 | 5 | 110140 |  |  | fritz: system event: $(fritz.msg) |
+| 110155 | 2 | 110140 |  |  | fritz: $(fritz.category): $(fritz.msg) |
+
 ## `0900-docker_rules.xml`
 
 | ID | Level | Eltern | Frequenz | MITRE | Beschreibung |

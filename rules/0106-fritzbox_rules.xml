@@ -1,0 +1,111 @@
+<group name="fritzbox,router,">
+
+  <rule id="110140" level="0">
+    <decoded_as>json</decoded_as>
+    <field name="fritz.kind">\.+</field>
+    <description>FRITZ!Box monitor event</description>
+  </rule>
+
+  <rule id="110141" level="1">
+    <if_sid>110140</if_sid>
+    <field name="fritz.kind">^heartbeat$</field>
+    <description>fritz: heartbeat, $(fritz.hosts_active)/$(fritz.hosts_total) hosts active, WAN $(fritz.wan.status)</description>
+  </rule>
+
+  <!-- Anmeldungen an der Box -->
+  <rule id="110142" level="7">
+    <if_sid>110140</if_sid>
+    <field name="fritz.category" type="pcre2">^(ui|app)_login_failed$</field>
+    <description>fritz: failed login to the router: $(fritz.msg)</description>
+    <mitre><id>T1110</id></mitre>
+  </rule>
+
+  <rule id="110143" level="10" frequency="5" timeframe="900">
+    <if_matched_sid>110142</if_matched_sid>
+    <description>fritz: 5+ failed router logins in 15 min - brute force against the FRITZ!Box</description>
+    <mitre><id>T1110.001</id></mitre>
+  </rule>
+
+  <rule id="110144" level="3">
+    <if_sid>110140</if_sid>
+    <field name="fritz.category" type="pcre2">^(ui|app)_login$</field>
+    <description>fritz: login to the router: $(fritz.msg)</description>
+  </rule>
+
+  <!-- Konfigurationsaenderungen: wer nicht selbst dran war, sollte das sehen -->
+  <rule id="110145" level="7">
+    <if_sid>110140</if_sid>
+    <field name="fritz.category">^settings_changed$</field>
+    <description>fritz: router settings changed: $(fritz.msg)</description>
+    <mitre><id>T1562</id></mitre>
+  </rule>
+
+  <rule id="110146" level="10">
+    <if_sid>110140</if_sid>
+    <field name="fritz.kind">^port_forwarding$</field>
+    <description>fritz: port forwarding $(fritz.change): $(fritz.proto)/$(fritz.ext_port) -> $(fritz.client):$(fritz.int_port) ($(fritz.desc))</description>
+    <mitre><id>T1090</id><id>T1133</id></mitre>
+  </rule>
+
+  <rule id="110147" level="8">
+    <if_sid>110140</if_sid>
+    <field name="fritz.category">^port_forwarding$</field>
+    <description>fritz: port forwarding event in router log: $(fritz.msg)</description>
+    <mitre><id>T1133</id></mitre>
+  </rule>
+
+  <!-- Geraete -->
+  <rule id="110148" level="6">
+    <if_sid>110140</if_sid>
+    <field name="fritz.kind">^new_device$</field>
+    <description>fritz: new device in the network: $(fritz.name) ($(fritz.mac), $(fritz.ip), $(fritz.iface))</description>
+    <mitre><id>T1200</id></mitre>
+  </rule>
+
+  <rule id="110149" level="6">
+    <if_sid>110140</if_sid>
+    <field name="fritz.category">^wlan_auth_failed$</field>
+    <description>fritz: WLAN authentication failed: $(fritz.msg)</description>
+    <mitre><id>T1110</id></mitre>
+  </rule>
+
+  <rule id="110150" level="3">
+    <if_sid>110140</if_sid>
+    <field name="fritz.category" type="pcre2">^wlan_(join|leave)$</field>
+    <description>fritz: $(fritz.category): $(fritz.msg)</description>
+  </rule>
+
+  <!-- WAN / VPN / System -->
+  <rule id="110151" level="5">
+    <if_sid>110140</if_sid>
+    <field name="fritz.kind">^wan_ip_changed$</field>
+    <description>fritz: external IP changed $(fritz.old) -> $(fritz.new)</description>
+  </rule>
+
+  <rule id="110152" level="5">
+    <if_sid>110140</if_sid>
+    <field name="fritz.category" type="pcre2">^wan_(down|up)$</field>
+    <description>fritz: $(fritz.category): $(fritz.msg)</description>
+  </rule>
+
+  <rule id="110153" level="5">
+    <if_sid>110140</if_sid>
+    <field name="fritz.category">^vpn$</field>
+    <description>fritz: VPN event: $(fritz.msg)</description>
+    <mitre><id>T1133</id></mitre>
+  </rule>
+
+  <rule id="110154" level="5">
+    <if_sid>110140</if_sid>
+    <field name="fritz.category" type="pcre2">^(reboot|firmware)$</field>
+    <description>fritz: system event: $(fritz.msg)</description>
+  </rule>
+
+  <rule id="110155" level="2">
+    <if_sid>110140</if_sid>
+    <field name="fritz.kind">^log$</field>
+    <field name="fritz.category" type="pcre2">^(other|telephony|dhcp|time)$</field>
+    <description>fritz: $(fritz.category): $(fritz.msg)</description>
+  </rule>
+
+</group>

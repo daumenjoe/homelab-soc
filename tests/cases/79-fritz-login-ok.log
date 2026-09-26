@@ -1,0 +1,3 @@
+# desc: Erfolgreicher Login ist Info (110144)
+# expect: 110144
+{"fritz": {"kind": "log", "time": "2026-09-26T21:20:00+0200", "category": "ui_login", "box_time": "26.09.26 21:19:00", "msg": "Anmeldung an der FRITZ!Box-Benutzeroberfläche von IP-Adresse 192.168.178.201.", "msg_id": "1"}}
