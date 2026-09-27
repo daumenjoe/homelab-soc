@@ -77,4 +77,11 @@
     <description>hw: $(hw.host) SMART collection error: $(hw.smart_error)</description>
   </rule>
 
+  <!-- GPU-Temperatur (amdgpu hwmon); RDNA-Karten drosseln ab ~95 -->
+  <rule id="110112" level="8">
+    <if_sid>110100</if_sid>
+    <field name="hw.gpu_temp_c" type="pcre2">^(9\d|1\d\d)(\.\d+)?$</field>
+    <description>hw: $(hw.host) GPU temperature high: $(hw.gpu_temp_c)C ($(hw.gpu.busy_pct)% busy)</description>
+  </rule>
+
 </group>

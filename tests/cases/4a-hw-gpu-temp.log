@@ -1,0 +1,3 @@
+# desc: GPU 93 C feuert 110112
+# expect: 110112
+{"hw": {"host": "llm", "time": "x", "cpu_temp_c": 45.0, "nvme": {"temp_c": 35, "percentage_used": 3, "available_spare": 100, "media_errors": 0, "smart_passed": true}, "gpu": {"card": "card0", "temp_c": 93.0, "busy_pct": 100.0, "vram_used_mb": 4800.0, "vram_total_mb": 8176.0}, "gpu_temp_c": 93.0, "load5": 3.1, "root_used_pct": 1.1}}

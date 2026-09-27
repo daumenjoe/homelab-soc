@@ -68,6 +68,7 @@ Erzeugt mit `scripts/gen-rule-table.py` – nicht von Hand pflegen.
 | 110109 | 7 | 110100 |  |  | hw: $(hw.host) root filesystem $(hw.root_used_pct)% full |
 | 110110 | 5 | 110100 |  |  | hw: $(hw.host) sensors collection error: $(hw.sensors_error) |
 | 110111 | 5 | 110100 |  |  | hw: $(hw.host) SMART collection error: $(hw.smart_error) |
+| 110112 | 8 | 110100 |  |  | hw: $(hw.host) GPU temperature high: $(hw.gpu_temp_c)C ($(hw.gpu.busy_pct)% busy) |
 
 ## `0105-honeypot_rules.xml`
 
