@@ -1,0 +1,41 @@
+{
+ "expect": [
+  "suspicious"
+ ],
+ "note": "Fremdes Image auf einem Host mit festem Stack. Ohne weitere Fakten: pruefen, wer das gestartet hat. malicious waere voreilig, benign fahrlaessig.",
+ "alert": {
+  "timestamp": "2026-09-27T12:00:00.000+0000",
+  "id": "1790000009.1",
+  "rule": {
+   "id": "110120",
+   "level": 9,
+   "description": "Docker: unexpected container sneaky started from image docker.io/library/alpine:latest - not part of the deployed compose project",
+   "groups": [
+    "docker",
+    "docker_unexpected"
+   ],
+   "mitre": {
+    "id": [
+     "T1071.004"
+    ]
+   }
+  },
+  "agent": {
+   "name": "iris"
+  },
+  "data": {
+   "integration": "docker",
+   "docker": {
+    "Type": "container",
+    "Action": "start",
+    "Actor": {
+     "Attributes": {
+      "image": "docker.io/library/alpine:latest",
+      "name": "sneaky"
+     }
+    }
+   }
+  }
+ },
+ "enrichment": {}
+}

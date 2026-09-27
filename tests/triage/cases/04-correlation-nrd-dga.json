@@ -1,0 +1,58 @@
+{
+ "expect": [
+  "suspicious",
+  "malicious"
+ ],
+ "note": "Frisch registrierte Zufallsdomain von einem Handy, VT kennt sie nicht: keine Bestaetigung, aber nichts Entlastendes. benign waere falsch.",
+ "alert": {
+  "timestamp": "2026-09-27T12:00:00.000+0000",
+  "id": "1790000009.1",
+  "rule": {
+   "id": "110099",
+   "level": 12,
+   "description": "Correlated DNS findings: 192.168.178.146 -> xk3q7vbn2rt.example (dga+nrd)",
+   "groups": [
+    "pihole_analytics",
+    "dns_correlation"
+   ],
+   "mitre": {
+    "id": [
+     "T1071.004"
+    ]
+   }
+  },
+  "agent": {
+   "name": "pi-hole"
+  },
+  "data": {
+   "pihole_analytics": {
+    "detection": "correlation",
+    "client": "192.168.178.146",
+    "registrable": "xk3q7vbn2rt.example",
+    "signals": "dga+nrd",
+    "signal_count": 2
+   }
+  }
+ },
+ "enrichment": {
+  "rdap": {
+   "registered": "2026-09-24",
+   "age_days": 3,
+   "newly_registered": true,
+   "registrar": "Gandi"
+  },
+  "virustotal": {
+   "virustotal": "unknown to VirusTotal"
+  },
+  "misp": {
+   "event_hits": 0,
+   "events": [],
+   "feed_hits": 0,
+   "feeds": []
+  },
+  "client": {
+   "ip": "192.168.178.146",
+   "hostname": "Pixel-8a.fritz.box"
+  }
+ }
+}

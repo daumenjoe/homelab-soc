@@ -1,0 +1,77 @@
+{
+ "expect": [
+  "suspicious",
+  "malicious"
+ ],
+ "note": "Verhaltensindikatoren zaehlen; TI ist alt, entkraeftet Tunneling aber nicht. benign waere falsch.",
+ "alert": {
+  "timestamp": "2026-09-27T12:00:00.000+0000",
+  "id": "1790000009.1",
+  "rule": {
+   "id": "110080",
+   "level": 10,
+   "description": "DNS tunneling suspected: 192.168.178.109 -> alkavkaz.example (300 unique long subdomains, 15600 chars, new-name ratio 1)",
+   "groups": [
+    "pihole_analytics",
+    "dns_tunneling"
+   ],
+   "mitre": {
+    "id": [
+     "T1071.004"
+    ]
+   }
+  },
+  "agent": {
+   "name": "pi-hole"
+  },
+  "data": {
+   "pihole_analytics": {
+    "detection": "tunneling",
+    "client": "192.168.178.109",
+    "registrable": "alkavkaz.example",
+    "unique_long": 300,
+    "unique_subdomains": 300,
+    "queries": 300,
+    "payload_chars": 15600,
+    "avg_length": 52.0,
+    "new_ratio": 1.0,
+    "sample": [
+     "mfzwizltebqxgzjanruw4zjaon2gk3tfoqqhi2dfebwgc6y.t"
+    ]
+   }
+  }
+ },
+ "enrichment": {
+  "rdap": {
+   "registered": "2024-12-07",
+   "age_days": 658,
+   "newly_registered": false,
+   "registrar": "Example Registrar LLC"
+  },
+  "virustotal": {
+   "malicious": 0,
+   "suspicious": 0,
+   "harmless": 55,
+   "engines": 91,
+   "reputation": 0,
+   "categories": []
+  },
+  "client": {
+   "ip": "192.168.178.109",
+   "hostname": "Android_phone.fritz.box"
+  },
+  "misp": {
+   "event_hits": 1,
+   "events": [
+    {
+     "event_id": 3,
+     "info": "The Dukes: 7 Years of Russian Espionage (2015)",
+     "type": "domain",
+     "to_ids": true
+    }
+   ],
+   "feed_hits": 0,
+   "feeds": []
+  }
+ }
+}

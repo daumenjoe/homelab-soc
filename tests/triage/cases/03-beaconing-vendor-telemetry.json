@@ -1,0 +1,69 @@
+{
+ "expect": [
+  "benign"
+ ],
+ "note": "Klassische Hersteller-Telemetrie: uralte Domain grosser Registrar, VT-Reputation 95, fester 5-min-Takt, kein TI.",
+ "alert": {
+  "timestamp": "2026-09-27T12:00:00.000+0000",
+  "id": "1790000009.1",
+  "rule": {
+   "id": "110091",
+   "level": 8,
+   "description": "DNS beaconing: 192.168.178.35 -> telemetry.vendor.example every ~301s (48 events, regularity 0.98)",
+   "groups": [
+    "pihole_analytics",
+    "dns_beaconing"
+   ],
+   "mitre": {
+    "id": [
+     "T1071.004"
+    ]
+   }
+  },
+  "agent": {
+   "name": "pi-hole"
+  },
+  "data": {
+   "pihole_analytics": {
+    "detection": "beaconing",
+    "client": "192.168.178.35",
+    "domain": "telemetry.vendor.example",
+    "registrable": "vendor.example",
+    "events": 48,
+    "median_interval": 301.0,
+    "jitter": 0.01,
+    "regularity": 0.98,
+    "blocked_queries": 0,
+    "duration_seconds": 14400
+   }
+  }
+ },
+ "enrichment": {
+  "rdap": {
+   "registered": "1998-03-25",
+   "age_days": 10400,
+   "newly_registered": false,
+   "registrar": "MarkMonitor Inc."
+  },
+  "virustotal": {
+   "malicious": 0,
+   "suspicious": 0,
+   "harmless": 70,
+   "engines": 91,
+   "reputation": 95,
+   "categories": [
+    "information technology"
+   ]
+  },
+  "misp": {
+   "event_hits": 0,
+   "events": [],
+   "feed_hits": 0,
+   "feeds": []
+  },
+  "client": {
+   "ip": "192.168.178.35",
+   "hostname": "DESKTOP-WIN.fritz.box"
+  }
+ }
+}

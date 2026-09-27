@@ -1,0 +1,70 @@
+{
+ "expect": [
+  "benign"
+ ],
+ "note": "MISP-Treffer auf einer Google-Domain aus einem OSINT-Bericht, to_ids=false: klassischer TI-Fehltreffer.",
+ "alert": {
+  "timestamp": "2026-09-27T12:00:00.000+0000",
+  "id": "1790000009.1",
+  "rule": {
+   "id": "110095",
+   "level": 6,
+   "description": "Newly registered domain? clients4.google.example queried by 192.168.178.109",
+   "groups": [
+    "pihole_analytics",
+    "dns_nrd"
+   ],
+   "mitre": {
+    "id": [
+     "T1071.004"
+    ]
+   }
+  },
+  "agent": {
+   "name": "pi-hole"
+  },
+  "data": {
+   "pihole_analytics": {
+    "detection": "nrd",
+    "client": "192.168.178.109",
+    "domain": "clients4.google.example",
+    "registrable": "google.example"
+   }
+  }
+ },
+ "enrichment": {
+  "rdap": {
+   "registered": "1997-09-15",
+   "age_days": 10600,
+   "newly_registered": false,
+   "registrar": "MarkMonitor Inc."
+  },
+  "virustotal": {
+   "malicious": 0,
+   "suspicious": 0,
+   "harmless": 78,
+   "engines": 91,
+   "reputation": 120,
+   "categories": [
+    "search engines"
+   ]
+  },
+  "misp": {
+   "event_hits": 1,
+   "events": [
+    {
+     "event_id": 41,
+     "info": "OSINT - Phishing kit abusing Google services (2019)",
+     "type": "domain",
+     "to_ids": false
+    }
+   ],
+   "feed_hits": 0,
+   "feeds": []
+  },
+  "client": {
+   "ip": "192.168.178.109",
+   "hostname": "Android_phone.fritz.box"
+  }
+ }
+}

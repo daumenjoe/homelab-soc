@@ -1,0 +1,7 @@
+{"case": "01-tunneling-stale-ti", "model": "testmodel", "run": 1, "expect": ["suspicious", "malicious"], "triage": {"llm": "error: ConnectionError", "model": "testmodel", "seconds": 0.0}}
+{"case": "02-tunneling-fresh-vt", "model": "testmodel", "run": 1, "expect": ["malicious"], "triage": {"llm": "error: ConnectionError", "model": "testmodel", "seconds": 0.0}}
+{"case": "03-beaconing-vendor-telemetry", "model": "testmodel", "run": 1, "expect": ["benign"], "triage": {"llm": "error: ConnectionError", "model": "testmodel", "seconds": 0.0}}
+{"case": "04-correlation-nrd-dga", "model": "testmodel", "run": 1, "expect": ["suspicious", "malicious"], "triage": {"llm": "error: ConnectionError", "model": "testmodel", "seconds": 0.0}}
+{"case": "05-honeypot-bruteforce", "model": "testmodel", "run": 1, "expect": ["malicious"], "triage": {"llm": "error: ConnectionError", "model": "testmodel", "seconds": 0.0}}
+{"case": "06-docker-unexpected-image", "model": "testmodel", "run": 1, "expect": ["suspicious"], "triage": {"llm": "error: ConnectionError", "model": "testmodel", "seconds": 0.0}}
+{"case": "07-misp-hit-on-google", "model": "testmodel", "run": 1, "expect": ["benign"], "triage": {"llm": "error: ConnectionError", "model": "testmodel", "seconds": 0.0}}

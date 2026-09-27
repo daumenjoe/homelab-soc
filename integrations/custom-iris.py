@@ -8,11 +8,14 @@ Enrichment (best-effort, short timeouts; a failure never blocks the alert):
   - VirusTotal:  last_analysis_stats, categories, reputation  (free API key)
   - Reverse DNS: PTR of the internal client -> device name    (via Pi-hole / router)
   - MISP:        stored events and feed cache for domain / registrable domain
+  - LLM triage:  local Ollama model reads the enriched alert, returns verdict + reasoning
+                 (advisory only: never changes severity, never acts)
 
 Optional config /var/ossec/etc/custom-iris.json (root:wazuh 640):
   {"customer_id": 2, "vt_api_key": "...", "dashboard_url": "https://wazuh.example",
    "verify_tls": true, "nrd_days": 30, "vt_per_minute": 4, "vt_per_day": 500,
-   "misp_url": "https://misp.example", "misp_api_key": "...", "misp_verify_tls": true}
+   "misp_url": "https://misp.example", "misp_api_key": "...", "misp_verify_tls": true,
+   "llm_url": "http://llm.example:11434", "llm_model": "qwen2.5:7b", "llm_timeout": 90, "llm_num_ctx": 8192}
 
 Manual quota check (uses one request):  custom-iris --vt-quota
 
@@ -30,11 +33,12 @@ from pathlib import Path
 
 import requests
 
-VERSION = "2.2"
+VERSION = "2.3"
 CONFIG_PATH = "/var/ossec/etc/custom-iris.json"
 DEFAULTS = {"customer_id": 2, "vt_api_key": "", "dashboard_url": "https://wazuh.provinglab.de/app/wazuh",
             "verify_tls": True, "nrd_days": 30, "vt_per_minute": 4, "vt_per_day": 500,
-            "misp_url": "", "misp_api_key": "", "misp_verify_tls": True}
+            "misp_url": "", "misp_api_key": "", "misp_verify_tls": True,
+            "llm_url": "", "llm_model": "qwen2.5:7b", "llm_timeout": 90, "llm_num_ctx": 8192}
 VT_STATE = "/var/ossec/var/custom-iris-vt.json"   # local request counter, shared by parallel runs
 TIMEOUT = 15
 ENRICH_TIMEOUT = 8
@@ -233,6 +237,57 @@ def enrich_misp(values, cfg):
     return out
 
 
+LLM_SYSTEM = (
+    "You are a senior SOC analyst doing first-level triage of a single SIEM alert from a small network. "
+    "You get the alert plus enrichment (domain age, VirusTotal, MISP threat intel, device name). "
+    "Judge whether this needs a human investigation. Be concrete, cite the enrichment facts that drive your verdict, "
+    "and remember that old threat-intel hits on re-registered domains and vendor telemetry are common false positives. "
+    "Answer in English, in the requested JSON only."
+)
+LLM_SCHEMA = {
+    "type": "object",
+    "properties": {
+        "verdict": {"type": "string", "enum": ["benign", "suspicious", "malicious", "unknown"]},
+        "confidence": {"type": "integer", "minimum": 0, "maximum": 100},
+        "summary": {"type": "string"},
+        "reasoning": {"type": "string"},
+        "next_step": {"type": "string"},
+    },
+    "required": ["verdict", "confidence", "summary", "reasoning", "next_step"],
+}
+
+
+def enrich_llm(alert, enrichment, cfg):
+    """Ask the local model for a triage opinion. Advisory only."""
+    if not cfg["llm_url"]:
+        return {"llm": "not configured"}
+    rule = alert.get("rule", {})
+    data = alert.get("data", {})
+    facts = {
+        "rule": {"id": rule.get("id"), "level": rule.get("level"), "description": rule.get("description"),
+                 "mitre": field(rule, "mitre.id", []), "groups": rule.get("groups", [])},
+        "agent": field(alert, "agent.name"),
+        "event": data.get("pihole_analytics") or data.get("dns") or {k: v for k, v in data.items() if k not in ("integration",)},
+        "enrichment": enrichment,
+    }
+    body = {
+        "model": cfg["llm_model"], "stream": False, "think": False, "format": LLM_SCHEMA,
+        "options": {"temperature": 0.2, "num_ctx": int(cfg["llm_num_ctx"])},
+        "messages": [{"role": "system", "content": LLM_SYSTEM},
+                     {"role": "user", "content": "Alert and enrichment as JSON:\n" + json.dumps(facts, ensure_ascii=False, default=str)[:20000]}],
+    }
+    t0 = time.time()
+    try:
+        r = requests.post(f"{cfg['llm_url'].rstrip('/')}/api/chat", json=body, timeout=int(cfg["llm_timeout"]))
+        r.raise_for_status()
+        out = json.loads(r.json()["message"]["content"])
+        out["model"] = cfg["llm_model"]
+        out["seconds"] = round(time.time() - t0, 1)
+        return out
+    except Exception as exc:  # noqa: BLE001
+        return {"llm": f"error: {type(exc).__name__}", "model": cfg["llm_model"], "seconds": round(time.time() - t0, 1)}
+
+
 def enrich_client(ip):
     try:
         socket.setdefaulttimeout(3)
@@ -296,6 +351,11 @@ def build_alert(alert, cfg, types, status_id):
         hostname = enrich_client(client)["hostname"]
         enrichment["client"] = {"ip": client, "hostname": hostname or "no PTR"}
 
+    triage = enrich_llm(alert, enrichment, cfg)
+    enrichment["llm_triage"] = triage
+    if triage.get("verdict"):
+        tags.append(f"llm-{triage['verdict']}")
+
     summary = []
     rd, vt = enrichment.get("rdap", {}), enrichment.get("virustotal", {})
     if "age_days" in rd:
@@ -327,6 +387,9 @@ def build_alert(alert, cfg, types, status_id):
     description = rule.get("description", "")
     if summary:
         description += "\n\nEnrichment: " + "; ".join(summary)
+    if triage.get("verdict"):
+        description += (f"\n\nLLM triage ({triage['model']}, {triage['seconds']}s): {triage['verdict'].upper()} "
+                        f"({triage['confidence']}%) - {triage['summary']}\nReasoning: {triage['reasoning']}\nNext step: {triage['next_step']}")
 
     context = {
         "wazuh_rule_id": rule.get("id"), "wazuh_level": level,

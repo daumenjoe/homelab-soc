@@ -1,0 +1,43 @@
+{
+ "expect": [
+  "malicious"
+ ],
+ "note": "Kein TI noetig: ein internes Android-Geraet probiert root-Passwoerter am Honeypot. Verhalten allein reicht.",
+ "alert": {
+  "timestamp": "2026-09-27T12:00:00.000+0000",
+  "id": "1790000009.1",
+  "rule": {
+   "id": "110134",
+   "level": 12,
+   "description": "Honeypot brute force: 192.168.178.67 made 5+ credential attempts against canary in 5 min",
+   "groups": [
+    "honeypot",
+    "honeypot_credentials"
+   ],
+   "mitre": {
+    "id": [
+     "T1071.004"
+    ]
+   }
+  },
+  "agent": {
+   "name": "canary"
+  },
+  "data": {
+   "logtype": 4002,
+   "node_id": "canary",
+   "src_host": "192.168.178.67",
+   "dst_port": 22,
+   "logdata": {
+    "USERNAME": "root",
+    "PASSWORD": "admin123"
+   }
+  }
+ },
+ "enrichment": {
+  "client": {
+   "ip": "192.168.178.67",
+   "hostname": "android-55ef09087a2b46d.fritz.box"
+  }
+ }
+}
