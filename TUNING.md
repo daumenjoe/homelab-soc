@@ -117,3 +117,16 @@ Domains sind in diesem Protokoll bewusst nur als Kategorie genannt.
 
 **Analyse:** 473 Events der Regel 87907 in einer Stunde vom MISP-Host: Docker-Healthchecks laufen als `exec` im Container (TCP-Probe auf den eigenen Port) und der Listener meldet jeden.
 **Maßnahme:** Level-0-Kindregel 110121 verschluckt `exec`-Events mit typischen Healthcheck-Idiomen (`/dev/tcp/`, `curl -f`, `wget --spider`, `pg_isready`, `redis-cli ping` …). Eine echte Shell im Container (`exec_start: bash`) bleibt sichtbar (Testfälle 52/53). Muster statt Containername, damit es für alle Docker-Hosts gilt.
+
+### Befund 16: LLM-Triage – Modellvergleich auf dem Evalset (2026-09-27)
+
+Sieben angereicherte Alerts mit erwartetem Verdict (`tests/triage/`), je Modell zwei Läufe, gleicher Prompt (Verdict-Stufen definiert, Konfidenz 1–100, `think: false`, Temperatur 0,2, JSON-Schema).
+
+| Modell | Treffer | Antwortzeit (warm) | Befund |
+|---|---|---|---|
+| gemma4:12b | 14/14 | 10–20 s | konsistent, Konfidenz angemessen, trennt „alte TI + Verhalten" von „TI-Fehltreffer" |
+| qwen3:14b | 10/14 | 30–60 s | Richtung stimmt, vergibt nie `malicious` (auch nicht bei Honeypot-Brute-Force) |
+| qwen3:30b-a3b (MoE) | 4/14 | 15–25 s | BENIGN 95 % bei Brute-Force, NRD+DGA und fremdem Container – hohe Konfidenz, falsches Urteil |
+| Foundation-Sec-8B-Instruct Q4 / Q8 | 6/14 / 6/14 | 5–8 s / 20 s | alles `suspicious` (60–75 %), erkennt entlastende Fakten, entscheidet aber nicht; Q4 und Q8 identisch |
+
+**Entscheidung:** gemma4:12b als Standardmodell der Triage (`llm_model` in `custom-iris.json`). **Lehren:** Modellgröße und Security-Tuning sagen wenig über Triage-Qualität; entscheidend ist, ob ein Modell Verhaltensbefunde und Reputation getrennt gewichtet. Ein Modell mit hoher Konfidenz und falschem Urteil ist schlimmer als keines. Quantisierung (Q4 vs. Q8) hatte keinen Einfluss. Einschränkungen: sieben Fälle; Prompt wurde nach Sichtung der 12B-Begründungen geschärft, alle Modelle liefen aber mit derselben Fassung.
