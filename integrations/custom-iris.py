@@ -242,7 +242,10 @@ LLM_SYSTEM = (
     "You get the alert plus enrichment (domain age, VirusTotal, MISP threat intel, device name). "
     "Judge whether this needs a human investigation. Be concrete, cite the enrichment facts that drive your verdict, "
     "and remember that old threat-intel hits on re-registered domains and vendor telemetry are common false positives. "
-    "Answer in English, in the requested JSON only."
+    "Verdict scale: malicious = strong evidence of an attack or compromise, act now (isolate, forensics); "
+    "suspicious = needs a human investigation before any action; benign = can be closed, explain why; "
+    "unknown = only if the data is truly insufficient. If your own next step is to isolate or contain a host, the verdict is malicious. "
+    "Confidence is an integer from 1 to 100, never 0. Answer in English, in the requested JSON only."
 )
 LLM_SCHEMA = {
     "type": "object",
