@@ -130,3 +130,17 @@ Sieben angereicherte Alerts mit erwartetem Verdict (`tests/triage/`), je Modell 
 | Foundation-Sec-8B-Instruct Q4 / Q8 | 6/14 / 6/14 | 5–8 s / 20 s | alles `suspicious` (60–75 %), erkennt entlastende Fakten, entscheidet aber nicht; Q4 und Q8 identisch |
 
 **Entscheidung:** gemma4:12b als Standardmodell der Triage (`llm_model` in `custom-iris.json`). **Lehren:** Modellgröße und Security-Tuning sagen wenig über Triage-Qualität; entscheidend ist, ob ein Modell Verhaltensbefunde und Reputation getrennt gewichtet. Ein Modell mit hoher Konfidenz und falschem Urteil ist schlimmer als keines. Quantisierung (Q4 vs. Q8) hatte keinen Einfluss. Einschränkungen: sieben Fälle; Prompt wurde nach Sichtung der 12B-Begründungen geschärft, alle Modelle liefen aber mit derselben Fassung.
+
+**Nachtrag (2026-09-28), acht weitere Modelle auf demselben Evalset:**
+
+| Modell | Treffer | stabil (Lauf 1 = Lauf 2) | Antwortzeit | Befund |
+|---|---|---|---|---|
+| qwen3.8:27b | 14/14 | 7/7 | 90–200 s (RAM) | qualitativ gleichauf mit gemma4:12b; braucht ≥ 24 GB VRAM für praktikable Zeiten |
+| gpt-oss:20b | 12/14 | 5/7 | 15–40 s | stark, aber unbeständig: kippt bei 04 und 05 zwischen den Läufen |
+| mistral-small3.2:24b | 10/14 | 5/7 | 50–95 s | zaghaft, langsam |
+| deepseek-r1:14b | 10/14 | 4/7 | 40–105 s | einzige ehrlich kalibrierte Konfidenz (benign 20–30 % bei 07) |
+| gpt-oss-safeguard:20b | 10/14 | 5/7 | 20–260 s | wie gpt-oss, langsamer |
+| phi4:14b | 7/14 | 6/7 | 30–80 s | beständig, aber fast alles `suspicious` |
+| Community-„Security"-Fine-Tunes (5) | 0–12/14 | – | – | alles `malicious 100 %`, alles `suspicious`, kein gültiges JSON, oder `benign 98 %` bei Honeypot-Brute-Force; Herkunft unklar, teils „uncensored" – ungeeignet für eine Triage-Kette |
+
+**Bestätigung:** gemma4:12b bleibt Standard – 14/14, 7/7 stabil, als einziges der Spitzengruppe vollständig auf der 8-GB-Karte. **Lehren:** Beständigkeit zwischen Läufen ist ein eigenes Kriterium; Modellgeneration schlägt Modellgröße (qwen3 vs. qwen3.8); Community-Fine-Tunes mit Security-Label sind ohne eigenes Eval nicht einsetzbar. Eigene Vorhersage vor dem Lauf: gpt-oss richtig, Mistral und phi4 überschätzt.

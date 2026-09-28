@@ -54,8 +54,14 @@ def main():
                     print(f"{c.stem:32} {m:18} {r:>3}  {str(t.get('verdict', t.get('llm')))[:10]:10} {str(t.get('confidence', '-')):>5} {str(t.get('seconds', '-')):>5}  {'OK' if ok else '--'}")
                     fh.write(json.dumps({"case": c.stem, "model": m, "run": r, "expect": d["expect"], "triage": t}, ensure_ascii=False) + "\n")
     print()
+    verdicts = {}
+    for line in open(out, encoding="utf-8"):
+        rec = json.loads(line); verdicts.setdefault((rec["model"], rec["case"]), []).append(rec["triage"].get("verdict"))
     for m, (hit, n) in score.items():
-        print(f"{m:18} {hit}/{n} Treffer")
+        pairs = [v for (mm, _), v in verdicts.items() if mm == m and len(v) > 1]
+        stable = sum(1 for v in pairs if len(set(v)) == 1)
+        cons = f", stabil {stable}/{len(pairs)} Faelle" if pairs else ""
+        print(f"{m:18} {hit}/{n} Treffer{cons}")
     print("Ergebnisse:", out)
 
 if __name__ == "__main__":
