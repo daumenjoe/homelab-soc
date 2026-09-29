@@ -33,3 +33,5 @@ Handtest ohne Manager-Neustart:
 
 Log: `/var/ossec/logs/integrations.log`. Ende-zu-Ende-Test: Zeile aus `tests/cases/29-analytics-tunneling.log`
 an das Analytics-Log auf dem Pi anhängen, der Alert erscheint in IRIS.
+
+**LLM-Triage (v2.3–2.7):** lokales Ollama-Modell (Standard `gemma4:12b`, Auswahl belegt in `tests/triage/`), `think: false`, Temperatur 0,2, JSON-Schema mit Verdict/Konfidenz/Begründung/nächstem Schritt. Rein beratend: ändert weder Schweregrad noch Status. Erreichbarkeitstest (3 s) vor dem Aufruf, weil der LLM-Host nicht dauerhaft läuft. `llm_model` darf eine Liste sein – das zweite Modell liefert eine **Zweitmeinung**, Abweichung wird als Tag `llm-disagree` und im Text markiert; auf 8 GB VRAM kostet das einen Kaltstart pro Modell (~2,5 min pro Alert), deshalb standardmäßig ein Modell.
