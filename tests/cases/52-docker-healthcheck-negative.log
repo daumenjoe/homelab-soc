@@ -1,3 +1,5 @@
-# desc: Negativtest – Healthcheck-exec (TCP-Probe) erzeugt keinen Alert
-# expect: 110121
+# desc: Negativtest – Healthcheck-execs (TCP-Probe, mysqladmin status, mehrzeiliges Shell-Skript) erzeugen keinen Alert
+# expect: RECORD-ME
 {"integration": "docker", "docker": {"Type": "container", "Action": "exec_start: /bin/sh -c bash -c 'echo > /dev/tcp/127.0.0.1/9002' || exit 1", "Actor": {"ID": "ad1a74f79381", "Attributes": {"image": "ghcr.io/misp/misp-docker/misp-core:v2.5.47", "name": "misp-docker-misp-core-1", "execID": "abc"}}, "scope": "local", "time": "1790361426"}}
+{"integration": "docker", "docker": {"Type": "container", "Action": "exec_start: /bin/sh -c mysqladmin --user=$MYSQL_USER --password=$MYSQL_PASSWORD status", "Actor": {"ID": "ad1a74f79381", "Attributes": {"image": "ghcr.io/misp/misp-docker/misp-core:v2.5.47", "name": "misp-docker-db-1", "execID": "abc"}}, "scope": "local", "time": "1790361426"}}
+{"integration": "docker", "docker": {"Type": "container", "Action": "exec_create: /bin/sh -c sh -c '\\n  if [ \"$(valkey-cli ping)\" != \"PONG\" ]; then exit 1; fi'", "Actor": {"ID": "ad1a74f79381", "Attributes": {"image": "ghcr.io/misp/misp-docker/misp-core:v2.5.47", "name": "misp-docker-redis-1", "execID": "abc"}}, "scope": "local", "time": "1790361426"}}

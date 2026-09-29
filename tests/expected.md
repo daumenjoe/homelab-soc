@@ -53,7 +53,7 @@ Erzeugt mit `run-logtest.sh --table` – nicht von Hand pflegen.
 | `4a-hw-gpu-temp.log` | GPU 93 C feuert 110112 | 1 | 110112 |
 | `50-docker-compose-container.log` | Container-Start aus dem bekannten Compose-Projekt: nur die Standardregel 87903 | 1 | 87903 |
 | `51-docker-unexpected-container.log` | Container-Start ohne Compose-Projekt feuert 110120 (Level 9) | 1 | 110120 |
-| `52-docker-healthcheck-negative.log` | Negativtest – Healthcheck-exec (TCP-Probe) erzeugt keinen Alert | 1 | 110121 |
+| `52-docker-healthcheck-negative.log` | Negativtest – Healthcheck-execs (TCP-Probe, mysqladmin status, mehrzeiliges Shell-Skript) erzeugen keinen Alert | 3 | RECORD-ME |
 | `53-docker-exec-shell.log` | Echte Shell im Container bleibt sichtbar (Standardregel) | 1 | 87907 |
 | `60-honeypot-start.log` | Honeypot-Start: nur Info 110131 | 1 | 110131 |
 | `61-honeypot-touch.log` | Verbindung ohne Zugangsdaten (SSH-Banner, HTTP GET) feuert 110132 | 2 | 110132 |

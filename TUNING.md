@@ -144,3 +144,7 @@ Sieben angereicherte Alerts mit erwartetem Verdict (`tests/triage/`), je Modell 
 | Community-„Security"-Fine-Tunes (5) | 0–12/14 | – | – | alles `malicious 100 %`, alles `suspicious`, kein gültiges JSON, oder `benign 98 %` bei Honeypot-Brute-Force; Herkunft unklar, teils „uncensored" – ungeeignet für eine Triage-Kette |
 
 **Bestätigung:** gemma4:12b bleibt Standard – 14/14, 7/7 stabil, als einziges der Spitzengruppe vollständig auf der 8-GB-Karte. **Lehren:** Beständigkeit zwischen Läufen ist ein eigenes Kriterium; Modellgeneration schlägt Modellgröße (qwen3 vs. qwen3.8); Community-Fine-Tunes mit Security-Label sind ohne eigenes Eval nicht einsetzbar. Eigene Vorhersage vor dem Lauf: gpt-oss richtig, Mistral und phi4 überschätzt.
+
+### Befund 18: Docker-Healthchecks zweiter Anlauf (2026-09-29)
+
+Regel 110121 (Befund 14) griff in der Produktion nicht: 83.000 87907-Events pro Tag vom MISP-Host, obwohl Testfall 52 grün war. Der Test enthielt nur mein eigenes Muster; die echten Healthchecks von MariaDB (`mysqladmin … status`) und Valkey (mehrzeiliges `sh -c '\n if [ …`) sahen anders aus. **Maßnahme:** Muster um `/bin/sh -c` als Merkmal, `mysqladmin`, `valkey-cli`, `curl`/`wget` ohne Optionsbindung und mehrzeilige Skripte erweitert; Testfall 52 enthält jetzt die drei echten Kommandos aus den Alerts. **Lehre:** Negativtests mit echten Produktionszeilen bauen, nicht mit vermuteten. Eine Volumenprüfung am Folgetag hätte den Fehlschlag am 26. gezeigt statt am 29.
