@@ -30,12 +30,16 @@ DRY = "--dry-run" in sys.argv
 
 # Klassifikation der Protokollzeilen (Muster -> Kategorie). Reihenfolge = Priorität.
 CATEGORIES = [
-    (r"Anmeldung .* Benutzeroberfläche .*gescheitert|Anmeldung an der FRITZ!Box-Benutzeroberfläche .*fehlgeschlagen|Anmeldung des Benutzers .* gescheitert", "ui_login_failed"),
-    (r"Anmeldung .* Benutzeroberfläche|Anmeldung des Benutzers|hat sich .* angemeldet", "ui_login"),
+    (r"Anmeldung (des Benutzers .* )?an der FRITZ!Box-Benutzeroberfläche .*gescheitert", "ui_login_failed"),
+    (r"Anmeldung einer App .*gescheitert", "app_login_failed"),
+    (r"Anmeldung (des Benutzers .* )?an der FRITZ!Box-Benutzeroberfläche", "ui_login"),
+    (r"Anmeldung einer App", "app_login"),
+    (r"FRITZ!Box-Einstellungen wurden .*geändert|Einstellungen .*geändert", "settings_changed"),
+    (r"WireGuard|VPN|IPSec", "vpn"),
     (r"Portfreigabe|Port-Freigabe|freigegeben", "port_forwarding"),
     (r"WLAN-Anmeldung ist gescheitert|WLAN-Gerät wurde abgewiesen|falsches Kennwort|Authentifizierungsfehler", "wlan_auth_failed"),
-    (r"WLAN-Gerät angemeldet|Neues WLAN-Gerät", "wlan_join"),
-    (r"WLAN-Gerät abgemeldet|WLAN-Gerät hat sich abgemeldet", "wlan_leave"),
+    (r"WLAN-Gerät (wurde )?angemeldet|Neues WLAN-Gerät", "wlan_join"),
+    (r"WLAN-Gerät (wurde )?abgemeldet", "wlan_leave"),
     (r"Internetverbindung wurde getrennt|Zeitüberschreitung|Kabelverbindung .*getrennt|DOCSIS", "wan_down"),
     (r"Internetverbindung wurde erfolgreich hergestellt|erfolgreich hergestellt", "wan_up"),
     (r"Firmware|FRITZ!OS|Update", "firmware"),
@@ -44,6 +48,8 @@ CATEGORIES = [
     (r"Gerät .* neu|IP-Adresse .* vergeben|DHCP", "dhcp"),
     (r"Systemzeit|NTP|Zeitserver", "time"),
 ]
+SELF_PATTERN = None   # eigene Zugriffe des Monitors; wird in main() aus user + self_ip gebaut
+COUNTER_SUFFIX = re.compile(r"\s*\[\d+ Meldungen seit .*?\]\s*$")   # Box haengt Zaehler an wiederholte Zeilen
 
 
 def load_json(path, default):
@@ -94,6 +100,9 @@ def fetch_event_log(base, sid):
 
 
 def classify(msg):
+    msg = COUNTER_SUFFIX.sub("", msg)
+    if SELF_PATTERN and SELF_PATTERN.search(msg):
+        return "self"
     for pattern, cat in CATEGORIES:
         if re.search(pattern, msg, re.I):
             return cat
@@ -148,6 +157,9 @@ def main():
     if not cfg:
         sys.exit(f"config missing: {CONFIG}")
     base = f"http://{cfg['address']}"
+    global SELF_PATTERN
+    if cfg.get("self_ip"):
+        SELF_PATTERN = re.compile(rf"Anmeldung .*Benutzers {re.escape(cfg['user'])} .*von IP-Adresse {re.escape(cfg['self_ip'])}\.?$")
     state = load_json(STATE, {"seen_log": [], "known_macs": {}, "portmappings": None, "external_ip": None})
     events = []
     errors = {}
@@ -156,12 +168,18 @@ def main():
     try:
         sid = web_login(base, cfg["user"], cfg["password"])
         entries = fetch_event_log(base, sid)
+        def key(e):
+            return f"{e['date']} {e['time']} " + COUNTER_SUFFIX.sub("", e["msg"])
         seen = set(state["seen_log"])
-        first_run = not state["seen_log"]
-        new = [e for e in entries if f"{e['date']} {e['time']} {e['msg']}" not in seen]
+        first_run = not seen
+        new = [e for e in entries if key(e) not in seen]
         for e in (reversed(new) if not first_run else []):   # ältestes zuerst; Erstlauf: nur merken, nicht melden
-            emit(events, "log", category=classify(e["msg"]), box_time=f"{e['date']} {e['time']}", msg=e["msg"], msg_id=e["id"])
-        state["seen_log"] = [f"{e['date']} {e['time']} {e['msg']}" for e in entries][:400]
+            cat = classify(e["msg"])
+            if cat == "self":
+                continue
+            emit(events, "log", category=cat, box_time=f"{e['date']} {e['time']}", msg=e["msg"], msg_id=e["id"])
+        # alles Gesehene behalten (kein Deckel, sonst werden alte Zeilen bei jedem Lauf wieder "neu")
+        state["seen_log"] = sorted(seen | {key(e) for e in entries})[-20000:]
         try:
             requests.get(f"{base}/login_sid.lua?version=2&logout=1&sid={sid}", timeout=5)
         except Exception:  # noqa: BLE001
@@ -174,9 +192,10 @@ def main():
         fc = FritzConnection(address=cfg["address"], user=cfg["user"], password=cfg["password"], timeout=15)
         hosts = tr064_hosts(fc)
         known = state["known_macs"]
+        first_hosts_run = not known
         for mac, h in hosts.items():
             if mac not in known:
-                if known:   # nicht beim Erstlauf
+                if not first_hosts_run:
                     emit(events, "new_device", mac=mac, ip=h["ip"], name=h["name"], iface=h["iface"], active=h["active"])
                 known[mac] = {"first_seen": time.strftime("%Y-%m-%d"), "name": h["name"]}
         state["known_macs"] = known
