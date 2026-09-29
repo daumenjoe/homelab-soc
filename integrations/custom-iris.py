@@ -33,11 +33,11 @@ from pathlib import Path
 
 import requests
 
-VERSION = "2.4"
+VERSION = "2.7"
 CONFIG_PATH = "/var/ossec/etc/custom-iris.json"
 DEFAULTS = {"customer_id": 2, "vt_api_key": "", "dashboard_url": "https://wazuh.provinglab.de/app/wazuh",
             "verify_tls": True, "nrd_days": 30, "vt_per_minute": 4, "vt_per_day": 500,
-            "misp_url": "", "misp_api_key": "", "misp_verify_tls": True,
+            "misp_url": "", "misp_api_key": "", "misp_verify_tls": True, "misp_stale_days": 365,
             "llm_url": "", "llm_model": "qwen2.5:7b", "llm_timeout": 90, "llm_num_ctx": 8192}
 VT_STATE = "/var/ossec/var/custom-iris-vt.json"   # local request counter, shared by parallel runs
 TIMEOUT = 15
@@ -210,17 +210,32 @@ def enrich_misp(values, cfg):
     out = {"queried": values, "event_hits": 0, "events": [], "feed_hits": 0, "feeds": []}
     try:
         r = requests.post(f"{base}/attributes/restSearch", headers=headers, verify=verify, timeout=ENRICH_TIMEOUT,
-                          json={"returnFormat": "json", "value": values, "limit": 25, "includeEventTags": True})
+                          json={"returnFormat": "json", "value": values, "limit": 25, "includeEventTags": True, "includeDecayScore": True})
         r.raise_for_status()
         attrs = r.json().get("response", {}).get("Attribute", [])
         out["event_hits"] = len(attrs)
         seen = {}
         for a in attrs:
             ev = a.get("Event", {})
+            scores = [d.get("score") for d in a.get("decay_score", []) if isinstance(d, dict)]
+            try:
+                ev_age = (datetime.now(timezone.utc).date() - datetime.fromisoformat(ev.get("date", "")).date()).days
+            except Exception:  # noqa: BLE001
+                ev_age = None
             seen.setdefault(ev.get("id"), {"event_id": ev.get("id"), "info": ev.get("info", "")[:100],
+                                            "event_date": ev.get("date"), "event_age_days": ev_age,
+                                            "decay_score": max(scores) if scores else None,
+                                            "decayed": all(d.get("decayed") for d in a.get("decay_score", []) if isinstance(d, dict)) if scores else None,
                                             "type": a.get("type"), "to_ids": a.get("to_ids"),
                                             "link": f"{base}/events/view/{ev.get('id')}"})
         out["events"] = list(seen.values())[:5]
+        def stale(e):   # MISP decay score wins; otherwise the event date decides
+            if e.get("decayed") is not None:
+                return e["decayed"]
+            return e.get("event_age_days") is not None and e["event_age_days"] > int(cfg["misp_stale_days"])
+        for e in out["events"]:
+            e["stale"] = stale(e)
+        out["all_decayed"] = bool(out["events"]) and all(e["stale"] for e in out["events"])
     except Exception as exc:  # noqa: BLE001
         out["events_error"] = f"{type(exc).__name__}"
     try:
@@ -349,19 +364,33 @@ def build_alert(alert, cfg, types, status_id):
         if vt_mal >= 3 and sev < 6:
             sev += 1                      # several engines agree: one step up
         enrichment["misp"] = enrich_misp([domain, regdom], cfg)
-        if enrichment["misp"].get("event_hits") or enrichment["misp"].get("feed_hits"):
+        mp_ = enrichment["misp"]
+        if mp_.get("feed_hits") or (mp_.get("event_hits") and not mp_.get("all_decayed")):
             tags.append("misp-hit")
             if sev < 6:
                 sev += 1
+        elif mp_.get("event_hits"):
+            tags.append("misp-stale")   # only decayed indicators: context, not escalation
     hostname = ""
     if client:
         hostname = enrich_client(client)["hostname"]
         enrichment["client"] = {"ip": client, "hostname": hostname or "no PTR"}
 
-    triage = enrich_llm(alert, enrichment, cfg)
+    models = cfg["llm_model"] if isinstance(cfg["llm_model"], list) else [cfg["llm_model"]]
+    opinions = []
+    for m in models:
+        opinions.append(enrich_llm(alert, enrichment, dict(cfg, llm_model=m)))
+        if "llm" in opinions[-1] and "unreachable" in str(opinions[-1]["llm"]):
+            break   # host is off: do not wait for the second opinion either
+    triage = opinions[0]
     enrichment["llm_triage"] = triage
+    if len(opinions) > 1:
+        enrichment["llm_second_opinion"] = opinions[1]
     if triage.get("verdict"):
         tags.append(f"llm-{triage['verdict']}")
+        second = opinions[1] if len(opinions) > 1 else {}
+        if second.get("verdict") and second["verdict"] != triage["verdict"]:
+            tags.append("llm-disagree")
 
     summary = []
     rd, vt = enrichment.get("rdap", {}), enrichment.get("virustotal", {})
@@ -371,7 +400,7 @@ def build_alert(alert, cfg, types, status_id):
         summary.append(f"VirusTotal {vt['malicious']}/{vt['engines']} malicious")
     mp = enrichment.get("misp", {})
     if "event_hits" in mp:
-        summary.append(f"MISP {mp['event_hits']} event / {mp['feed_hits']} feed hits" + (f" ({', '.join(mp['feeds'][:3])})" if mp.get("feeds") else ""))
+        summary.append(f"MISP {mp['event_hits']} event / {mp['feed_hits']} feed hits" + (" (all decayed)" if mp.get("all_decayed") else "") + (f" ({', '.join(mp['feeds'][:3])})" if mp.get("feeds") else ""))
     if hostname:
         summary.append(f"client {hostname}")
 
@@ -397,6 +426,11 @@ def build_alert(alert, cfg, types, status_id):
     if triage.get("verdict"):
         description += (f"\n\nLLM triage ({triage['model']}, {triage['seconds']}s): {triage['verdict'].upper()} "
                         f"({triage['confidence']}%) - {triage['summary']}\nReasoning: {triage['reasoning']}\nNext step: {triage['next_step']}")
+        second = enrichment.get("llm_second_opinion", {})
+        if second.get("verdict"):
+            agree = "agrees" if second["verdict"] == triage["verdict"] else "DISAGREES"
+            description += (f"\n\nSecond opinion ({second['model']}, {second['seconds']}s) {agree}: {second['verdict'].upper()} "
+                            f"({second['confidence']}%) - {second['summary']}")
 
     context = {
         "wazuh_rule_id": rule.get("id"), "wazuh_level": level,

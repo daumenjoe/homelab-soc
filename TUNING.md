@@ -148,3 +148,7 @@ Sieben angereicherte Alerts mit erwartetem Verdict (`tests/triage/`), je Modell 
 ### Befund 18: Docker-Healthchecks zweiter Anlauf (2026-09-29)
 
 Regel 110121 (Befund 14) griff in der Produktion nicht: 83.000 87907-Events pro Tag vom MISP-Host, obwohl Testfall 52 grün war. Der Test enthielt nur mein eigenes Muster; die echten Healthchecks von MariaDB (`mysqladmin … status`) und Valkey (mehrzeiliges `sh -c '\n if [ …`) sahen anders aus. **Maßnahme:** Muster um `/bin/sh -c` als Merkmal, `mysqladmin`, `valkey-cli`, `curl`/`wget` ohne Optionsbindung und mehrzeilige Skripte erweitert; Testfall 52 enthält jetzt die drei echten Kommandos aus den Alerts. **Lehre:** Negativtests mit echten Produktionszeilen bauen, nicht mit vermuteten. Eine Volumenprüfung am Folgetag hätte den Fehlschlag am 26. gezeigt statt am 29.
+
+### Befund 19: MISP-Treffer verfallen lassen (2026-09-29)
+
+Der Dukes-Treffer (Bericht 2015) auf einer 2024 neu registrierten Domain eskalierte jeden Alert auf Critical. **Maßnahme:** Decaying Model in MISP aktiviert (NIDS-Standardmodell, 120 Tage, Schwelle 30; eigenes Modell ließ sich über die UI nicht mit Attributtypen verknüpfen), `includeDecayScore` in der Abfrage, plus Alters-Fallback über das Event-Datum (`misp_stale_days` 365). Verfallene Treffer: Tag `misp-stale`, keine Schweregradstufe. Dienstkonto für die Integration mit Read-Only-Rolle und IP-gebundenem Key statt Admin-Key.
