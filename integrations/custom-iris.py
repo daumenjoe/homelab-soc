@@ -33,7 +33,7 @@ from pathlib import Path
 
 import requests
 
-VERSION = "2.3"
+VERSION = "2.4"
 CONFIG_PATH = "/var/ossec/etc/custom-iris.json"
 DEFAULTS = {"customer_id": 2, "vt_api_key": "", "dashboard_url": "https://wazuh.provinglab.de/app/wazuh",
             "verify_tls": True, "nrd_days": 30, "vt_per_minute": 4, "vt_per_day": 500,
@@ -280,6 +280,10 @@ def enrich_llm(alert, enrichment, cfg):
                      {"role": "user", "content": "Alert and enrichment as JSON:\n" + json.dumps(facts, ensure_ascii=False, default=str)[:20000]}],
     }
     t0 = time.time()
+    try:   # quick reachability probe: the LLM host may simply be switched off
+        requests.get(f"{cfg['llm_url'].rstrip('/')}/api/tags", timeout=3).raise_for_status()
+    except Exception as exc:  # noqa: BLE001
+        return {"llm": f"unreachable: {type(exc).__name__}", "model": cfg["llm_model"], "seconds": round(time.time() - t0, 1)}
     try:
         r = requests.post(f"{cfg['llm_url'].rstrip('/')}/api/chat", json=body, timeout=int(cfg["llm_timeout"]))
         r.raise_for_status()
