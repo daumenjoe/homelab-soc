@@ -33,7 +33,7 @@ from pathlib import Path
 
 import requests
 
-VERSION = "2.7"
+VERSION = "2.8"
 CONFIG_PATH = "/var/ossec/etc/custom-iris.json"
 DEFAULTS = {"customer_id": 2, "vt_api_key": "", "dashboard_url": "https://wazuh.provinglab.de/app/wazuh",
             "verify_tls": True, "nrd_days": 30, "vt_per_minute": 4, "vt_per_day": 500,
@@ -346,9 +346,9 @@ def build_alert(alert, cfg, types, status_id):
     data = alert.get("data", {})
     pa = data.get("pihole_analytics", {})
 
-    domain = pa.get("registrable") or pa.get("domain") or field(data, "dns.domain")
+    domain = pa.get("registrable") or pa.get("domain") or field(data, "dns.domain") or field(data, "tls.sni")
     regdom = pa.get("registrable") or domain
-    client = pa.get("client") or data.get("srcip") or field(data, "dns.client")
+    client = pa.get("client") or data.get("srcip") or field(data, "dns.client") or data.get("src_host") or data.get("src_ip")
     agent = field(alert, "agent.name", "manager")
 
     enrichment, tags, sev = {}, [], severity(level)
