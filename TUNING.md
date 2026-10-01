@@ -152,3 +152,11 @@ Regel 110121 (Befund 14) griff in der Produktion nicht: 83.000 87907-Events pro 
 ### Befund 19: MISP-Treffer verfallen lassen (2026-09-29)
 
 Der Dukes-Treffer (Bericht 2015) auf einer 2024 neu registrierten Domain eskalierte jeden Alert auf Critical. **Maßnahme:** Decaying Model in MISP aktiviert (NIDS-Standardmodell, 120 Tage, Schwelle 30; eigenes Modell ließ sich über die UI nicht mit Attributtypen verknüpfen), `includeDecayScore` in der Abfrage, plus Alters-Fallback über das Event-Datum (`misp_stale_days` 365). Verfallene Treffer: Tag `misp-stale`, keine Schweregradstufe. Dienstkonto für die Integration mit Read-Only-Rolle und IP-gebundenem Key statt Admin-Key.
+
+### Befund 20: Suricata-Einführung – was am Mirror wirklich ankommt (2026-10-01)
+
+Erste Stunden am Mirror-Port: 93 % der Events waren TLS ohne SNI, fast alles das Polling der Proxmox-Web-UI vom Laptop (per IP aufgerufen, daher kein SNI), dazu 40.000 mDNS-Events. Scheinbare DNS-Bypässe über IPv6 waren die Unbound-Rekursion des Pi-hole, weil HOME_NET keine IPv6-Präfixe kannte. **Maßnahmen:** Wazuh bekommt nur noch Alerts (zweiter EVE-Output), DoH-Erkennung als Suricata-Signatur auf den SNI statt über TLS-Events; HOME_NET per Router-Advertisement-Skript mit IPv6-Präfixen; Decoder-Rauschen (`Ethertype unknown`, RRCP vom Switch) deaktiviert. **Nebenbefund:** SNMPv1-Broadcasts mit `public` vom Pixel 9 (455 in 15 min) = Brother-Druckdienst bei der Druckersuche; Regel 110167 bleibt auf Level 5 ohne Ausnahme.
+
+### Befund 21: Zweitmeinung uneins beim DoH-Fall; halluzinierte ATT&CK-ID (2026-10-01)
+
+Erster produktiver DoH-Alert (Laptop → dns.google): gemma4:12b SUSPICIOUS 85 % („Ziel legitim, Verhalten umgeht den Pi-hole, Prozess auf dem Host identifizieren"), gpt-oss:20b BENIGN 95 % („dns.google ist harmlos, keine Aktion"). Gemma trifft den Zweck der Regel, gpt-oss bewertet Reputation statt Verhalten – dasselbe Muster wie im Evalset bei Fall 01. Gemma nannte dabei T1136.003 als DoH-Technik; die ID existiert, bedeutet aber „Create Account: Cloud Account". **Lehre:** `llm-disagree` ist ein nützliches Signal; Technik-IDs aus LLM-Antworten sind ungeprüft nicht verwendbar, die Regel selbst trägt die richtigen (T1572, T1071.004).

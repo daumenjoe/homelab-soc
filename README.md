@@ -32,6 +32,7 @@ flowchart LR
 | Docker (IRIS-Host) | Docker-Socket via Agent-Wodle | JSON | 110120 | Container-Start mit einem Image, das nicht zum ausgerollten Stack gehört |
 | Honeypot (OpenCanary) | `/var/log/opencanary/opencanary.log` | JSON | 110130–110135 | Berührung, Login-Versuch, Brute-Force, Portscan – auf einem Köder ist jeder Treffer echt |
 | FRITZ!Box | Ereignisprotokoll + TR-064 via `fritz-monitor.py` | JSON | 110140–110155 | Router-Logins und Brute-Force, Einstellungsänderungen, Port-Freigaben, neue Geräte, WLAN-Fehlanmeldungen, WAN/VPN/System |
+| Suricata | Mirror-Port, `eve-wazuh.json` (nur Alerts) | JSON | 110160–110168 | ET-Open-Signaturen nach Severity, eigene: DoH/DoT/DNS-Bypass per SNI und Port, SNMP-Discovery |
 | pihole-analytics | FTL-Datenbank + NRD-Liste | JSON | 110080, 110090–110099 | Korrelation NRD + DGA/Beaconing/Tunneling pro Client, Tunneling (viele verschiedene lange Subdomains), Beaconing (auch auf geblockte Domains), DGA, NXDOMAIN-Sturm pro Client, Newly Registered Domains, Heartbeat und Selbstüberwachung |
 
 Vollständige Regelliste mit Leveln, Eltern und MITRE-Mapping: [`docs/RULES.md`](docs/RULES.md) (generiert).
@@ -53,7 +54,7 @@ unbound/         Logging-Konfiguration und Logrotate für Unbound
 analytics/       pihole-analytics: Skript, Config, systemd-Units, Logrotate
 tests/           Testfälle und Runner für wazuh-logtest
 scripts/         collect / deploy / check-public / gen-rule-table
-infra/           Mail-Relay, hw-metrics, honeypot, fritzbox, misp (Sensor-Skript + systemd-Timer fuer den Proxmox-Host) (Postfix-LXC) fuer Benachrichtigungen
+infra/           Mail-Relay, hw-metrics, honeypot, fritzbox, misp, sensor (Suricata) (Sensor-Skript + systemd-Timer fuer den Proxmox-Host) (Postfix-LXC) fuer Benachrichtigungen
 integrations/    Wazuh Custom Integration -> DFIR-IRIS
 dashboards/      Wazuh-Dashboard als Saved-Objects-Import (.ndjson)
 docs/            DOKUMENTATION.md (ausführlich), RULES.md (generiert)
@@ -104,7 +105,7 @@ Alerts ab Level 10 gehen zusätzlich per Mail raus (Wazuh `email_alert_level` 10
 ## Roadmap
 
 - SOAR-Anreicherung: Shuffle zwischen Wazuh und IRIS (WHOIS, Threat Intel, Gerätename zur Client-IP); LLM-Triage als späterer Schritt im selben Workflow
-- Suricata, Velociraptor + Atomic Red Team, LLM-gestützte Triage
+- ~~Suricata~~ (erledigt: `infra/sensor/`), Velociraptor + Atomic Red Team, LLM-gestützte Triage
 
 ## Lizenz
 

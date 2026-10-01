@@ -11,6 +11,7 @@ Ein Fall pro Datei, Nummernkreise wie bei den Regeln:
 | `5x` | Docker-Listener-Events (JSON) |
 | `6x` | OpenCanary-Honeypot (JSON) |
 | `7x` | FRITZ!Box-Monitor (JSON) |
+| `8x` | Suricata EVE-Alerts (JSON) |
 
 Neuen Fall anlegen: Zeilen aus dem echten Log kopieren, Domains bei Bedarf
 neutralisieren, `# desc:` setzen, dann `../run-logtest.sh --record <datei>`
