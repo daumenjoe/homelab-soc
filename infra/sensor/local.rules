@@ -1,0 +1,14 @@
+# Homelab-Signaturen (SID 9000000+). priority:3 haelt sie aus der Severity-1/2-Logik in Wazuh heraus,
+# die Einstufung passiert dort anhand der SID.
+
+# DNS over HTTPS: bekannte Resolver-Endpunkte per TLS-SNI
+alert tls $HOME_NET any -> $EXTERNAL_NET any (msg:"LOCAL DoH resolver contacted (TLS SNI)"; flow:established,to_server; tls.sni; pcre:"/(^|\.)(dns\.google|cloudflare-dns\.com|one\.one\.one\.one|dns\.quad9\.net|dns1[01]\.quad9\.net|doh\.opendns\.com|dns\.adguard(-dns)?\.com|dns\.nextdns\.io|doh\.cleanbrowsing\.org|doh\.dns\.sb|dns\.alidns\.com|doh\.360\.cn|doh\.mullvad\.net|dns\.switch\.ch|doh\.libredns\.gr|dns\.controld\.com|freedns\.controld\.com)$/i"; priority:3; sid:9000001; rev:1; metadata:homelab doh;)
+
+# DNS over TLS: Port 853 nach aussen
+alert tcp $HOME_NET any -> $EXTERNAL_NET 853 (msg:"LOCAL DNS over TLS to external resolver"; flow:to_server; flags:S; threshold:type limit, track by_src, count 1, seconds 300; priority:3; sid:9000002; rev:1; metadata:homelab dot;)
+
+# Klartext-DNS an fremde Resolver (Pi-hole-Umgehung). Der Pi-hole selbst (Unbound-Rekursion) ist ausgenommen.
+alert dns ![192.168.178.251,192.168.178.1] any -> $EXTERNAL_NET 53 (msg:"LOCAL plain DNS to external resolver (Pi-hole bypass)"; flow:to_server; threshold:type limit, track by_src, count 1, seconds 300; priority:3; sid:9000004; rev:1; metadata:homelab dns_bypass;)
+
+# SNMP-Discovery per Broadcast mit Standard-Community
+alert snmp $HOME_NET any -> [255.255.255.255,192.168.178.255] 161 (msg:"LOCAL SNMP broadcast discovery with community public"; snmp.community; content:"public"; threshold:type limit, track by_src, count 1, seconds 600; priority:3; sid:9000003; rev:1; metadata:homelab recon;)

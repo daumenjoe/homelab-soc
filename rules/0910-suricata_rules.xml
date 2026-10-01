@@ -1,0 +1,74 @@
+<group name="suricata,ids,">
+
+  <!-- Kindregeln der eingebauten 86601 (Suricata alert). Datei muss nach 0475-suricata_rules.xml laden.
+       Reihenfolge: hoeherer Level zuerst; die LOCAL-Signaturen haben priority 3, damit sie nicht in
+       110160/110161 landen, sondern bei ihrer SID. -->
+
+  <rule id="110160" level="10">
+    <if_sid>86601</if_sid>
+    <field name="alert.severity">^1$</field>
+    <description>Suricata severity 1: $(alert.signature) [$(src_ip) -> $(dest_ip):$(dest_port)]</description>
+    <mitre><id>T1071</id></mitre>
+    <group>suricata_critical,</group>
+  </rule>
+
+  <rule id="110164" level="8">
+    <if_sid>86601</if_sid>
+    <field name="alert.signature_id">^9000001$</field>
+    <description>DoH resolver contacted: $(src_ip) -> $(tls.sni) (DNS bypasses Pi-hole)</description>
+    <mitre><id>T1572</id><id>T1071.004</id></mitre>
+    <group>dns_bypass,</group>
+  </rule>
+
+  <rule id="110165" level="8">
+    <if_sid>86601</if_sid>
+    <field name="alert.signature_id">^9000002$</field>
+    <description>DNS over TLS to external resolver: $(src_ip) -> $(dest_ip):853 (DNS bypasses Pi-hole)</description>
+    <mitre><id>T1572</id><id>T1071.004</id></mitre>
+    <group>dns_bypass,</group>
+  </rule>
+
+  <rule id="110166" level="7">
+    <if_sid>86601</if_sid>
+    <field name="alert.signature_id">^9000004$</field>
+    <description>Plain DNS to external resolver: $(src_ip) -> $(dest_ip):53 (Pi-hole bypass)</description>
+    <mitre><id>T1071.004</id></mitre>
+    <group>dns_bypass,</group>
+  </rule>
+
+  <rule id="110161" level="6">
+    <if_sid>86601</if_sid>
+    <field name="alert.severity">^2$</field>
+    <field name="alert.signature" negate="yes">^ET INFO </field>
+    <description>Suricata severity 2: $(alert.signature) [$(src_ip) -> $(dest_ip)]</description>
+  </rule>
+
+  <rule id="110167" level="5">
+    <if_sid>86601</if_sid>
+    <field name="alert.signature_id">^9000003$</field>
+    <description>SNMP broadcast discovery with community 'public' from $(src_ip)</description>
+    <mitre><id>T1046</id></mitre>
+  </rule>
+
+  <!-- Rauschen leise stellen: Suricata-eigene Decoder/Stream-Hinweise und ET INFO -->
+  <rule id="110162" level="1">
+    <if_sid>86601</if_sid>
+    <field name="alert.signature">^SURICATA </field>
+    <description>Suricata engine event: $(alert.signature)</description>
+  </rule>
+
+  <rule id="110163" level="2">
+    <if_sid>86601</if_sid>
+    <field name="alert.signature">^ET INFO </field>
+    <description>Suricata info: $(alert.signature) [$(src_ip)]</description>
+  </rule>
+
+  <!-- Viele Severity-1-Treffer derselben Quelle: aktiver Vorfall -->
+  <rule id="110168" level="12" frequency="5" timeframe="600">
+    <if_matched_sid>110160</if_matched_sid>
+    <same_field>src_ip</same_field>
+    <description>Suricata: 5+ severity-1 alerts from $(src_ip) in 10 min</description>
+    <mitre><id>T1071</id></mitre>
+  </rule>
+
+</group>

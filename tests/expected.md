@@ -70,3 +70,11 @@ Erzeugt mit `run-logtest.sh --table` – nicht von Hand pflegen.
 | `77-fritz-vpn.log` | VPN-Verbindung feuert 110153 | 1 | 110153 |
 | `78-fritz-wan-down.log` | Internetverbindung getrennt feuert 110152 | 1 | 110152 |
 | `79-fritz-login-ok.log` | Erfolgreicher Login ist Info (110144) | 1 | 110144 |
+| `80-suricata-sev1.log` | Severity-1-Signatur feuert 110160 (Level 10) | 1 | 110160 |
+| `81-suricata-sev1-burst.log` | 6 Severity-1-Treffer derselben Quelle in 10 min zaehlen auf 110168 | 6 | 110160 110168 |
+| `82-suricata-doh.log` | LOCAL DoH per SNI feuert 110164, nicht 110160/110161 | 1 | 110164 |
+| `83-suricata-dot.log` | LOCAL DoT feuert 110165 | 1 | 110165 |
+| `84-suricata-dns-bypass.log` | LOCAL Klartext-DNS an fremden Resolver feuert 110166 | 1 | 110166 |
+| `85-suricata-snmp.log` | LOCAL SNMP-Discovery feuert 110167 | 1 | 110167 |
+| `86-suricata-sev2.log` | Severity 2 (nicht ET INFO) feuert 110161 | 1 | 110161 |
+| `87-suricata-noise.log` | Engine-Events und ET INFO bleiben leise (110162/110163) | 2 | 110162 110163 |

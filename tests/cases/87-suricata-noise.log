@@ -1,0 +1,4 @@
+# desc: Engine-Events und ET INFO bleiben leise (110162/110163)
+# expect: 110162 110163
+{"timestamp": "2026-10-01T22:00:00.000000+0200", "flow_id": 1, "in_iface": "eth0", "event_type": "alert", "src_ip": "192.168.178.77", "src_port": 51000, "dest_ip": "203.0.113.10", "dest_port": 443, "proto": "TCP", "alert": {"action": "allowed", "gid": 1, "signature_id": 2221000, "rev": 1, "signature": "SURICATA HTTP Response excessive header repetition", "category": "Misc", "severity": 3}}
+{"timestamp": "2026-10-01T22:00:00.000000+0200", "flow_id": 1, "in_iface": "eth0", "event_type": "alert", "src_ip": "192.168.178.251", "src_port": 51000, "dest_ip": "203.0.113.10", "dest_port": 443, "proto": "TCP", "alert": {"action": "allowed", "gid": 1, "signature_id": 2027000, "rev": 1, "signature": "ET INFO Observed DNS Query to .biz TLD", "category": "Misc", "severity": 2}}

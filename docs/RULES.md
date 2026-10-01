@@ -108,3 +108,17 @@ Erzeugt mit `scripts/gen-rule-table.py` – nicht von Hand pflegen.
 |---|---|---|---|---|---|
 | 110120 | 9 | 87903 |  | T1610, T1059 | Docker: unexpected container $(docker.Actor.Attributes.name) started from image $(docker.Actor.Attributes.image) - not part of the deployed compose project |
 | 110121 | 0 |  |  |  | Docker: healthcheck exec (suppressed) |
+
+## `0910-suricata_rules.xml`
+
+| ID | Level | Eltern | Frequenz | MITRE | Beschreibung |
+|---|---|---|---|---|---|
+| 110160 | 10 | 86601 |  | T1071 | Suricata severity 1: $(alert.signature) [$(src_ip) -> $(dest_ip):$(dest_port)] |
+| 110164 | 8 | 86601 |  | T1572, T1071.004 | DoH resolver contacted: $(src_ip) -> $(tls.sni) (DNS bypasses Pi-hole) |
+| 110165 | 8 | 86601 |  | T1572, T1071.004 | DNS over TLS to external resolver: $(src_ip) -> $(dest_ip):853 (DNS bypasses Pi-hole) |
+| 110166 | 7 | 86601 |  | T1071.004 | Plain DNS to external resolver: $(src_ip) -> $(dest_ip):53 (Pi-hole bypass) |
+| 110161 | 6 | 86601 |  |  | Suricata severity 2: $(alert.signature) [$(src_ip) -> $(dest_ip)] |
+| 110167 | 5 | 86601 |  | T1046 | SNMP broadcast discovery with community 'public' from $(src_ip) |
+| 110162 | 1 | 86601 |  |  | Suricata engine event: $(alert.signature) |
+| 110163 | 2 | 86601 |  |  | Suricata info: $(alert.signature) [$(src_ip)] |
+| 110168 | 12 | 110160 (freq) | 5× / 600 s | T1071 | Suricata: 5+ severity-1 alerts from $(src_ip) in 10 min |
