@@ -78,3 +78,11 @@ Erzeugt mit `run-logtest.sh --table` – nicht von Hand pflegen.
 | `85-suricata-snmp.log` | LOCAL SNMP-Discovery feuert 110167 | 1 | 110167 |
 | `86-suricata-sev2.log` | Severity 2 (nicht ET INFO) feuert 110161 | 1 | 110161 |
 | `87-suricata-noise.log` | Engine-Events und ET INFO bleiben leise (110162/110163) | 2 | 110162 110163 |
+| `92-kismet-heartbeat.log` | Heartbeat: nur 110171 | 1 | 110171 |
+| `93-kismet-evil-twin.log` | APSPOOF feuert 110172 | 1 | 110172 |
+| `94-kismet-deauth.log` | DEAUTHFLOOD feuert 110173 | 1 | 110173 |
+| `95-kismet-new-client-own-ap.log` | Unbekannter Client an eigener BSSID feuert 110174 | 1 | 110174 |
+| `96-kismet-probe-own-ssid.log` | Probe nach eigener SSID ohne Verbindung feuert 110175 | 1 | 110175 |
+| `97-kismet-other-alert.log` | Sonstiger Kismet-Alert feuert 110176 | 1 | 110176 |
+| `98-kismet-new-ap.log` | Neuer Nachbar-AP feuert 110177 | 1 | 110177 |
+| `99-kismet-new-client.log` | Neuer fremder Client ohne Bezug feuert 110178 | 1 | 110178 |

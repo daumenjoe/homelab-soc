@@ -1,0 +1,3 @@
+{"url": "http://192.168.178.226:2501", "api_key": "<kismet-api-key>",
+ "own_bssids": ["74:42:7F:4C:7C:4A", "2C:3A:FD:CF:02:C6", "74:42:7F:4C:7C:49", "2C:3A:FD:CF:02:C5"],
+ "own_ssids": ["Judaeische Volksfront", "Volksfront von Judaea"]}

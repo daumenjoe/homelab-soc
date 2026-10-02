@@ -102,6 +102,20 @@ Erzeugt mit `scripts/gen-rule-table.py` – nicht von Hand pflegen.
 | 110154 | 5 | 110140 |  |  | fritz: system event: $(fritz.msg) |
 | 110155 | 2 | 110140 |  |  | fritz: $(fritz.category): $(fritz.msg) |
 
+## `0107-kismet_rules.xml`
+
+| ID | Level | Eltern | Frequenz | MITRE | Beschreibung |
+|---|---|---|---|---|---|
+| 110170 | 0 |  |  |  | Kismet WLAN sensor event |
+| 110171 | 1 | 110170 |  |  | kismet: heartbeat, $(kismet.devices_known) devices known, $(kismet.new_devices) new |
+| 110172 | 10 | 110170 |  | T1557 | WLAN evil twin: $(kismet.text) |
+| 110173 | 10 | 110170 |  | T1499 | WLAN deauth/disassoc attack ($(kismet.header)): $(kismet.text) |
+| 110174 | 8 | 110170 |  | T1200 | WLAN: new client $(kismet.mac) ($(kismet.manuf)) joined our AP $(kismet.bssid) |
+| 110175 | 5 | 110170 |  |  | WLAN: $(kismet.mac) ($(kismet.manuf)) probes for our SSID '$(kismet.ssid)' without being connected |
+| 110176 | 6 | 110170 |  |  | kismet alert $(kismet.header): $(kismet.text) |
+| 110177 | 3 | 110170 |  |  | WLAN: new access point nearby '$(kismet.ssid)' $(kismet.mac) ch $(kismet.channel) $(kismet.signal) dBm |
+| 110178 | 2 | 110170 |  |  | WLAN: new $(kismet.type) seen: $(kismet.mac) ($(kismet.manuf)) |
+
 ## `0900-docker_rules.xml`
 
 | ID | Level | Eltern | Frequenz | MITRE | Beschreibung |

@@ -29,3 +29,18 @@ als Domain.
 **Grenzen.** Der Mirror sieht nur, was durch den Switch läuft: alle verkabelten Systeme, aber vom WLAN
 nur den Verkehr zu diesen Systemen. Für vollständige Sicht auf die Handys bräuchte es den
 Capture-Stream der Fritzbox (geplant als Experiment) oder eine kabelgebundene zweite Box.
+
+## WLAN-Sensor (Kismet)
+
+Alfa AWUS036ACM (MT7612U, `mt76`) am USB-3-Port des Sensors, Kismet 2025.09 aus dem Kismet-Repo,
+Quelle `wlx…` mit Channel-Hopping, Web-UI auf der Management-IP Port 2501 (ufw nur LAN), API-Key mit
+Rolle `readonly` für den Poller. `apspoof` definiert die eigenen SSIDs mit den vier echten BSSIDs
+(Fritzbox + Repeater, 2,4 und 5 GHz): fremde BSSID mit eigener SSID = Evil Twin. `rfkill unblock wlan`
+nötig, weil die Härtung alle WLAN-Geräte blockiert hatte; Onboard-WLAN bleibt per dtoverlay aus.
+
+`kismet-wazuh.py` (Timer 60 s) holt Alerts und neu gesehene Geräte per REST-API und schreibt sie als
+JSON-Zeilen nach `/var/log/kismet/kismet-wazuh.json`; Erstlauf merkt den Bestand ohne Meldung. Felder
+`on_own_ap` (Client hängt an eigener BSSID) und `own_ssid` (sucht per Probe nach eigener SSID).
+Wazuh-Regeln `0107-kismet_rules.xml` 110170–110178: Evil Twin und Deauth/Disassoc → 10 (→ IRIS),
+unbekannter Client am eigenen AP → 8, sonstige Kismet-Alerts → 6, Probe nach eigener SSID → 5,
+neuer Nachbar-AP → 3, neuer Client → 2. Die AWUS036AXM (6 GHz) liegt als zweites Radio bereit.

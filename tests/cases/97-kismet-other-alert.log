@@ -1,0 +1,3 @@
+# desc: Sonstiger Kismet-Alert feuert 110176
+# expect: 110176
+{"kismet": {"kind": "alert", "time": "2026-10-02T20:00:00+0200", "header": "CHANCHANGE", "severity": 5, "text": "Channel change detected for 02:11:22:33:44:55", "channel": "6", "source_mac": "02:11:22:33:44:55", "dest_mac": "ff:ff:ff:ff:ff:ff", "transmitter_mac": "02:11:22:33:44:55"}}

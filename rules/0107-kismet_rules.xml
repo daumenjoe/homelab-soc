@@ -1,0 +1,74 @@
+<group name="kismet,wlan,">
+
+  <rule id="110170" level="0">
+    <decoded_as>json</decoded_as>
+    <field name="kismet.kind">\.+</field>
+    <description>Kismet WLAN sensor event</description>
+  </rule>
+
+  <rule id="110171" level="1">
+    <if_sid>110170</if_sid>
+    <field name="kismet.kind">^heartbeat$</field>
+    <description>kismet: heartbeat, $(kismet.devices_known) devices known, $(kismet.new_devices) new</description>
+  </rule>
+
+  <!-- Evil Twin: fremde BSSID sendet eine unserer SSIDs -->
+  <rule id="110172" level="10">
+    <if_sid>110170</if_sid>
+    <field name="kismet.kind">^alert$</field>
+    <field name="kismet.header">^APSPOOF$</field>
+    <description>WLAN evil twin: $(kismet.text)</description>
+    <mitre><id>T1557</id></mitre>
+    <group>wlan_attack,</group>
+  </rule>
+
+  <!-- Deauth/Disassoc-Fluten: Vorbereitung fuer Handshake-Capture oder DoS -->
+  <rule id="110173" level="10">
+    <if_sid>110170</if_sid>
+    <field name="kismet.kind">^alert$</field>
+    <field name="kismet.header" type="pcre2">^(DEAUTHFLOOD|BCASTDISCON|DISASSOCTRAFFIC|DISCONCODEINVALID)$</field>
+    <description>WLAN deauth/disassoc attack ($(kismet.header)): $(kismet.text)</description>
+    <mitre><id>T1499</id></mitre>
+    <group>wlan_attack,</group>
+  </rule>
+
+  <!-- Unbekannter Client haengt an einem unserer Access Points -->
+  <rule id="110174" level="8">
+    <if_sid>110170</if_sid>
+    <field name="kismet.kind">^new_device$</field>
+    <field name="kismet.on_own_ap">^true$</field>
+    <description>WLAN: new client $(kismet.mac) ($(kismet.manuf)) joined our AP $(kismet.bssid)</description>
+    <mitre><id>T1200</id></mitre>
+  </rule>
+
+  <!-- Jemand sucht per Probe nach unserer SSID (Geraet, das sie kennt, aber nicht verbunden ist) -->
+  <rule id="110175" level="5">
+    <if_sid>110170</if_sid>
+    <field name="kismet.kind">^new_device$</field>
+    <field name="kismet.own_ssid">^true$</field>
+    <field name="kismet.on_own_ap">^false$</field>
+    <description>WLAN: $(kismet.mac) ($(kismet.manuf)) probes for our SSID '$(kismet.ssid)' without being connected</description>
+  </rule>
+
+  <!-- Uebrige Kismet-Alerts -->
+  <rule id="110176" level="6">
+    <if_sid>110170</if_sid>
+    <field name="kismet.kind">^alert$</field>
+    <description>kismet alert $(kismet.header): $(kismet.text)</description>
+  </rule>
+
+  <!-- Neue Nachbarn: Info -->
+  <rule id="110177" level="3">
+    <if_sid>110170</if_sid>
+    <field name="kismet.kind">^new_device$</field>
+    <field name="kismet.type">^Wi-Fi AP$</field>
+    <description>WLAN: new access point nearby '$(kismet.ssid)' $(kismet.mac) ch $(kismet.channel) $(kismet.signal) dBm</description>
+  </rule>
+
+  <rule id="110178" level="2">
+    <if_sid>110170</if_sid>
+    <field name="kismet.kind">^new_device$</field>
+    <description>WLAN: new $(kismet.type) seen: $(kismet.mac) ($(kismet.manuf))</description>
+  </rule>
+
+</group>

@@ -12,6 +12,7 @@ Ein Fall pro Datei, Nummernkreise wie bei den Regeln:
 | `6x` | OpenCanary-Honeypot (JSON) |
 | `7x` | FRITZ!Box-Monitor (JSON) |
 | `8x` | Suricata EVE-Alerts (JSON) |
+| `9[2-9]` | Kismet WLAN-Sensor (JSON) |
 
 Neuen Fall anlegen: Zeilen aus dem echten Log kopieren, Domains bei Bedarf
 neutralisieren, `# desc:` setzen, dann `../run-logtest.sh --record <datei>`
