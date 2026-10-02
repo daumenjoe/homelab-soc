@@ -160,3 +160,7 @@ Erste Stunden am Mirror-Port: 93 % der Events waren TLS ohne SNI, fast alles das
 ### Befund 21: Zweitmeinung uneins beim DoH-Fall; halluzinierte ATT&CK-ID (2026-10-01)
 
 Erster produktiver DoH-Alert (Laptop → dns.google): gemma4:12b SUSPICIOUS 85 % („Ziel legitim, Verhalten umgeht den Pi-hole, Prozess auf dem Host identifizieren"), gpt-oss:20b BENIGN 95 % („dns.google ist harmlos, keine Aktion"). Gemma trifft den Zweck der Regel, gpt-oss bewertet Reputation statt Verhalten – dasselbe Muster wie im Evalset bei Fall 01. Gemma nannte dabei T1136.003 als DoH-Technik; die ID existiert, bedeutet aber „Create Account: Cloud Account". **Lehre:** `llm-disagree` ist ein nützliches Signal; Technik-IDs aus LLM-Antworten sind ungeprüft nicht verwendbar, die Regel selbst trägt die richtigen (T1572, T1071.004).
+
+### Befund 22 (Hardware): SSD fällt nach zwei Minuten vom SATA-Bus (2026-10-02)
+
+PNY CS900 im 2,5"-Käfig des M90q: beim Boot `link up 6.0 Gbps`, nach ~2 min `hardreset failed`, Platte weg – am USB-Adapter fehlerfrei. Verdacht Flachbandkabel (FRU 00XL211), Ersatz änderte nichts. **Ursache:** Link-Power-Management (`lpm-pol 3`, DIPM/DevSleep): die SSD wacht aus dem Schlafzustand nicht mehr auf. **Fix:** `libata.force=nolpm,noncq` in `GRUB_CMDLINE_LINUX_DEFAULT`. **Lehre:** Bei „beim Start da, unter Last/nach Ruhe weg" zuerst LPM ausschließen (ein Reboot), dann Kabel. Bekanntes Muster bei DRAM-losen Budget-SSDs an Intel-Chipsätzen.
