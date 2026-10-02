@@ -69,6 +69,26 @@ def check_wazuh_agents(api, user, password, verify):
         return False, f"API {type(exc).__name__}"
 
 
+def check_pve_backups(cfg):
+    """Newest backup per storage must be younger than its allowed age (hours)."""
+    pb = cfg['pve_backup']
+    headers = {'Authorization': f"PVEAPIToken={pb['token']}"}
+    out, ok_all = [], True
+    for storage, max_h in pb['storages'].items():
+        try:
+            r = requests.get(f"{pb['url']}/api2/json/nodes/{pb['node']}/storage/{storage}/content",
+                             headers=headers, params={'content': 'backup'}, verify=pb.get('verify', True), timeout=10)
+            r.raise_for_status()
+            newest = max((c.get('ctime', 0) for c in r.json()['data']), default=0)
+            age_h = (time.time() - newest) / 3600 if newest else 9e9
+            ok = age_h <= max_h
+            out.append(f"{storage} {'none' if not newest else f'{age_h:.0f}h'}" + ('' if ok else f' (>{max_h}h)'))
+        except Exception as exc:  # noqa: BLE001
+            ok = False; out.append(f"{storage} {type(exc).__name__}")
+        ok_all = ok_all and ok
+    return ok_all, ', '.join(out)
+
+
 # ------------------------------------------------------------------ notify
 def notify(cfg, title, message, priority="default", tags=""):
     if DRY:
@@ -99,7 +119,10 @@ def main():
         results[f"dns:{name}"] = check_dns(server, qname)
     if cfg.get("wazuh_api"):
         w = cfg["wazuh_api"]
-        results["wazuh:agents"] = check_wazuh_agents(w["url"], w["user"], w["password"], cfg.get("verify_tls", True))
+        results["wazuh:agents"] = check_wazuh_agents(w["url"], w["user"], w["password"], w.get("verify", cfg.get("verify_tls", True)))
+
+    if cfg.get('pve_backup'):
+        results['pve:backups'] = check_pve_backups(cfg)
 
     # state transitions
     old = state["status"]

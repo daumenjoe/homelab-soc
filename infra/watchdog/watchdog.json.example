@@ -18,12 +18,28 @@
   "fritzbox": "192.168.178.1"
  },
  "dns": {
-  "pihole": ["192.168.178.251", "example.com"],
-  "pihole-local": ["192.168.178.251", "iris.provinglab.de"]
+  "pihole": [
+   "192.168.178.251",
+   "example.com"
+  ],
+  "pihole-local": [
+   "192.168.178.251",
+   "iris.provinglab.de"
+  ]
  },
  "wazuh_api": {
   "url": "https://192.168.178.220:55000",
   "user": "wazuh-wui",
   "password": "<api-passwort>"
+ },
+ "pve_backup": {
+  "url": "https://pve.provinglab.de:8006",
+  "node": "pve",
+  "token": "watchdog@pve!monitor=<token-secret>",
+  "verify": true,
+  "storages": {
+   "local-backup": 30,
+   "usb-backup-nfs": 192
+  }
  }
 }
