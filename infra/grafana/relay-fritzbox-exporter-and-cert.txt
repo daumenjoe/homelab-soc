@@ -1,0 +1,18 @@
+#!/usr/bin/env bash
+set -euo pipefail
+D=/root/.acme.sh/grafana.provinglab.de_ecc
+H=root@192.168.178.227
+scp -q "$D/fullchain.cer" "$H:/etc/grafana/fullchain.pem"
+scp -q "$D/grafana.provinglab.de.key" "$H:/etc/grafana/privkey.pem"
+ssh "$H" "chown root:grafana /etc/grafana/*.pem && chmod 640 /etc/grafana/*.pem && systemctl restart grafana-server"
+echo "grafana: cert deployed $(date +%F)"
+---
+[Unit]
+Description=FRITZ Box Prometheus exporter
+After=network.target
+[Service]
+EnvironmentFile=/etc/default/fritzbox_exporter
+ExecStart=/usr/local/bin/fritzbox_exporter -listen-address 0.0.0.0:9042 -gateway-url http://192.168.178.1:49000 -gateway-luaurl http://192.168.178.1 -metrics-file /etc/fritzbox_exporter/metrics.json -lua-metrics-file /etc/fritzbox_exporter/metrics-lua_cable.json
+Restart=on-failure
+[Install]
+WantedBy=multi-user.target

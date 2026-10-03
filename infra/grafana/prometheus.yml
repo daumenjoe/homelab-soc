@@ -1,0 +1,34 @@
+global:
+  scrape_interval: 30s
+  evaluation_interval: 30s
+scrape_configs:
+  - job_name: prometheus
+    static_configs: [{targets: ["localhost:9090"]}]
+  - job_name: node
+    static_configs:
+      - targets: ["192.168.178.252:9100"]
+        labels: {host: pve}
+      - targets: ["192.168.178.220:9100"]
+        labels: {host: wazuh}
+      - targets: ["192.168.178.221:9100"]
+        labels: {host: iris}
+      - targets: ["192.168.178.225:9100"]
+        labels: {host: misp}
+      - targets: ["192.168.178.223:9100"]
+        labels: {host: relay}
+      - targets: ["192.168.178.251:9100"]
+        labels: {host: pihole}
+      - targets: ["192.168.178.226:9100"]
+        labels: {host: sensor}
+      - targets: ["192.168.178.229:9100"]
+        labels: {host: watchdog}
+      - targets: ["192.168.178.45:9100"]
+        labels: {host: llm}
+      - targets: ["192.168.178.46:9100"]
+        labels: {host: flepo-backup}
+      - targets: ["localhost:9100"]
+        labels: {host: grafana}
+  - job_name: pihole
+    static_configs: [{targets: ["192.168.178.251:9617"]}]
+  - job_name: fritzbox
+    static_configs: [{targets: ["192.168.178.223:9042"]}]

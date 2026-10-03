@@ -1,0 +1,9 @@
+[Unit]
+Description=Pi-hole Prometheus exporter
+After=network.target
+[Service]
+EnvironmentFile=/etc/default/pihole-exporter
+ExecStart=/usr/local/bin/pihole-exporter
+Restart=on-failure
+[Install]
+WantedBy=multi-user.target
