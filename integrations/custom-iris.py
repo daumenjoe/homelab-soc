@@ -8,6 +8,8 @@ Enrichment (best-effort, short timeouts; a failure never blocks the alert):
   - VirusTotal:  last_analysis_stats, categories, reputation  (free API key)
   - Reverse DNS: PTR of the internal client -> device name    (via Pi-hole / router)
   - MISP:        stored events and feed cache for domain / registrable domain
+  - Decision:    local Ollama decision model (/v1/systemone) returns a calibrated verdict
+                 distribution and a needs_human probability in ~2 s; gates the LLM triage
   - LLM triage:  local Ollama model reads the enriched alert, returns verdict + reasoning
                  (advisory only: never changes severity, never acts)
 
@@ -33,12 +35,13 @@ from pathlib import Path
 
 import requests
 
-VERSION = "2.8"
+VERSION = "2.9"
 CONFIG_PATH = "/var/ossec/etc/custom-iris.json"
 DEFAULTS = {"customer_id": 2, "vt_api_key": "", "dashboard_url": "https://wazuh.provinglab.de/app/wazuh",
             "verify_tls": True, "nrd_days": 30, "vt_per_minute": 4, "vt_per_day": 500,
             "misp_url": "", "misp_api_key": "", "misp_verify_tls": True, "misp_stale_days": 365,
-            "llm_url": "", "llm_model": "qwen2.5:7b", "llm_timeout": 90, "llm_num_ctx": 8192}
+            "llm_url": "", "llm_model": "qwen2.5:7b", "llm_timeout": 90, "llm_num_ctx": 8192,
+            "dm_model": "", "dm_gate": 0.5}
 VT_STATE = "/var/ossec/var/custom-iris-vt.json"   # local request counter, shared by parallel runs
 TIMEOUT = 15
 ENRICH_TIMEOUT = 8
@@ -275,6 +278,46 @@ LLM_SCHEMA = {
 }
 
 
+DM_QUESTIONS = {
+    "verdict": {
+        "type": "choice",
+        "instructions": ("You are doing first-level SOC triage of this alert. Behaviour indicators (tunneling metrics, "
+                         "brute force, unexpected containers) matter even when the destination reputation is clean; "
+                         "stale threat intel on old domains and vendor telemetry are common false positives. "
+                         "Which verdict fits?"),
+        "criteria": {"benign": "nothing to do, the alert can be closed",
+                     "suspicious": "a human must investigate before any action",
+                     "malicious": "strong evidence of an attack or compromise, act now"},
+    },
+    "needs_human": {"type": "noul", "instructions": "Does a human analyst need to look at this alert?"},
+}
+
+
+def enrich_decision(alert, enrichment, cfg):
+    """Calibrated verdict distribution from a decision model. Cheap (~2 s), deterministic, advisory."""
+    if not cfg["llm_url"] or not cfg.get("dm_model"):
+        return {"decision": "not configured"}
+    rule, data = alert.get("rule", {}), alert.get("data", {})
+    state = json.dumps({"rule": {"id": rule.get("id"), "level": rule.get("level"), "description": rule.get("description"),
+                                "mitre": field(rule, "mitre.id", []), "groups": rule.get("groups", [])},
+                        "agent": field(alert, "agent.name"),
+                        "event": data.get("pihole_analytics") or data.get("dns") or {k: v for k, v in data.items() if k != "integration"},
+                        "enrichment": enrichment}, ensure_ascii=False, default=str)[:60000]
+    t0 = time.time()
+    try:
+        requests.get(f"{cfg['llm_url'].rstrip('/')}/api/tags", timeout=3).raise_for_status()
+        r = requests.post(f"{cfg['llm_url'].rstrip('/')}/v1/systemone", timeout=120,
+                          json={"model": cfg["dm_model"], "state": state, "questions": DM_QUESTIONS})
+        r.raise_for_status()
+        ans = r.json()["answers"]
+        v = ans["verdict"]
+        return {"model": cfg["dm_model"], "verdict": v["choice"], "probabilities": {k: round(x, 3) for k, x in v["probabilities"].items()},
+                "confidence": round(v.get("confidence", 0), 3), "needs_human": round(ans["needs_human"].get("noul", 0), 3),
+                "seconds": round(time.time() - t0, 1)}
+    except Exception as exc:  # noqa: BLE001
+        return {"decision": f"error: {type(exc).__name__}", "model": cfg["dm_model"], "seconds": round(time.time() - t0, 1)}
+
+
 def enrich_llm(alert, enrichment, cfg):
     """Ask the local model for a triage opinion. Advisory only."""
     if not cfg["llm_url"]:
@@ -376,13 +419,19 @@ def build_alert(alert, cfg, types, status_id):
         hostname = enrich_client(client)["hostname"]
         enrichment["client"] = {"ip": client, "hostname": hostname or "no PTR"}
 
-    models = cfg["llm_model"] if isinstance(cfg["llm_model"], list) else [cfg["llm_model"]]
+    decision = enrich_decision(alert, enrichment, cfg)
+    enrichment["decision"] = decision
+    if decision.get("verdict"):
+        tags.append(f"dm-{decision['verdict']}")
+    # LLM triage only when the decision model wants a human (or is unavailable): dm_gate = needs_human threshold, 0 = always
+    run_llm = not decision.get("verdict") or decision["needs_human"] >= float(cfg.get("dm_gate", 0.5)) or decision["verdict"] != "benign"
+    models = (cfg["llm_model"] if isinstance(cfg["llm_model"], list) else [cfg["llm_model"]]) if run_llm else []
     opinions = []
     for m in models:
         opinions.append(enrich_llm(alert, enrichment, dict(cfg, llm_model=m)))
         if "llm" in opinions[-1] and "unreachable" in str(opinions[-1]["llm"]):
             break   # host is off: do not wait for the second opinion either
-    triage = opinions[0]
+    triage = opinions[0] if opinions else {"llm": "skipped: decision model says benign, no human needed"}
     enrichment["llm_triage"] = triage
     if len(opinions) > 1:
         enrichment["llm_second_opinion"] = opinions[1]
@@ -423,6 +472,12 @@ def build_alert(alert, cfg, types, status_id):
     description = rule.get("description", "")
     if summary:
         description += "\n\nEnrichment: " + "; ".join(summary)
+    if decision.get("verdict"):
+        pr = decision["probabilities"]
+        description += (f"\n\nDecision ({decision['model']}, {decision['seconds']}s): {decision['verdict'].upper()} "
+                        f"{round(pr.get(decision['verdict'], 0) * 100)}% [benign {round(pr.get('benign', 0) * 100)} / suspicious "
+                        f"{round(pr.get('suspicious', 0) * 100)} / malicious {round(pr.get('malicious', 0) * 100)}], needs human "
+                        f"{round(decision['needs_human'] * 100)}%")
     if triage.get("verdict"):
         description += (f"\n\nLLM triage ({triage['model']}, {triage['seconds']}s): {triage['verdict'].upper()} "
                         f"({triage['confidence']}%) - {triage['summary']}\nReasoning: {triage['reasoning']}\nNext step: {triage['next_step']}")
