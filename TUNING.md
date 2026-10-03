@@ -164,3 +164,7 @@ Erster produktiver DoH-Alert (Laptop → dns.google): gemma4:12b SUSPICIOUS 85 %
 ### Befund 22 (Hardware): SSD fällt nach zwei Minuten vom SATA-Bus (2026-10-02)
 
 PNY CS900 im 2,5"-Käfig des M90q: beim Boot `link up 6.0 Gbps`, nach ~2 min `hardreset failed`, Platte weg – am USB-Adapter fehlerfrei. Verdacht Flachbandkabel (FRU 00XL211), Ersatz änderte nichts. **Ursache:** Link-Power-Management (`lpm-pol 3`, DIPM/DevSleep): die SSD wacht aus dem Schlafzustand nicht mehr auf. **Fix:** `libata.force=nolpm,noncq` in `GRUB_CMDLINE_LINUX_DEFAULT`. **Lehre:** Bei „beim Start da, unter Last/nach Ruhe weg" zuerst LPM ausschließen (ein Reboot), dann Kabel. Bekanntes Muster bei DRAM-losen Budget-SSDs an Intel-Chipsätzen.
+
+### Befund 23 (Betrieb): Backup-Ziel blockiert Produktions-VM (2026-10-03)
+
+Der wöchentliche Snapshot-Backup-Job auf die NFS-Freigabe des Backup-Rechners (430 MB RAM, ntfs-3g) brachte diesen in den Swap; NFS blieb stehen, QEMUs Backup-Job hielt daraufhin alle Schreibzugriffe der Wazuh-VM an (jbd2/opensearch/wazuh-db „blocked for more than 122 seconds"), die VM war über Stunden tot. Lösen nur mit `umount -f -l` des NFS-Mounts, dann `qm unlock`/`stop`/`start`. **Entscheidung:** VM-Backups nur noch lokal (SSD); der Backup-Rechner zieht die Archive samstags per rsync (`--bwlimit`, `mountpoint`-Prüfung). Backup-Rechner in die Wächter-Pings; NFS aus der Backup-Prüfung. **Lehre:** Ein Snapshot-Backup-Ziel muss zuverlässiger sein als die gesicherte VM. Erwogen: USB-Platte auf ext4 (ntfs-3g ist auf dieser Hardware der Flaschenhals).
