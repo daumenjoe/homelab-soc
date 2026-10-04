@@ -176,3 +176,15 @@ Der wöchentliche Snapshot-Backup-Job auf die NFS-Freigabe des Backup-Rechners (
 ### Befund 24: Entscheidungsmodell als Triage-Vorstufe (2026-10-04)
 
 Ollama 0.35 bringt Entscheidungsmodelle (`/v1/systemone`, Jev-API): typisierte Fragen, Antwort als Wahrscheinlichkeitsverteilung. Auf dem Evalset: nimble (9B) 12/14, beide Läufe identisch, 1,7 s warm; eindeutige Fälle über 85 %, offene 65–76 %, Hersteller-Telemetrie 90 % benign mit `needs_human` 0,13; einziger Fehler der TI-Fehltreffer auf einer Google-Domain (76 % suspicious). tev1 (4B) 12/14, aber unscharf (eindeutiger Fall nur 70 %, Telemetrie als suspicious). **Entscheidung:** nimble als erste Stufe in `custom-iris` 2.9, Gemma nur bei `needs_human` ≥ 0,5 oder nicht-benignem Verdict. Produktiv: Telemetrie-Alert mit echter Anreicherung in 12 s als `dm-benign` ohne LLM-Runde, Tunneling-Alert `dm-suspicious` mit voller Runde. **Lehre:** Was ein Entscheidungsmodell gut kann (kalibrierte Einordnung in Sekunden), ersetzt nicht, was es nicht kann (Begründung, nächster Schritt); die Kombination ist besser als jedes Teil. Nebenbefund: Ohne Anreicherung (Testdomain `.example`) urteilt jedes Modell „suspicious" – die Fakten sind der Hebel, nicht das Modell.
+
+### Befund 25: Atomic Red Team gegen die eigenen Detections (2026-10-04)
+
+Wegwerf-VM `redcanary` (.231, Snapshot `clean`) mit Wazuh-Agent, Velociraptor-Client und Invoke-AtomicRedTeam (PowerShell 7.5 als tar.gz; Debian 13 hat libicu76, deshalb `System.Globalization.Invariant=true` in der runtimeconfig und powershell-yaml/Module per Git statt PSGallery). Erste getestete Techniken, alle erkannt:
+- **T1053.003** (Cron) → Velociraptor 110183
+- **T1098.004** (SSH-Key) → Velociraptor 110182 (Atomic-1 prüft nur Schreibrecht; echter Key manuell)
+- **T1071.004** (DNS an fremden Resolver) → Suricata 110166, Echtzeit
+- **T1110** (SSH-Brute-Force gegen den Honeypot) → 110133/110134, Mail + IRIS
+
+**Betriebsbefund:** Velociraptors `diff()`-Quellverzeichnisse entstehen erst beim ersten Fund und erbten die Default-ACL nicht (`drwx------`), der Wazuh-Agent war ausgesperrt und verschluckte den ersten SSH-Key-Fund. Dauerhaft gelöst: `wazuh` in Velociraptors Gruppe, Datastore `g+rX` plus setgid auf die Verzeichnisse. **Lehre:** Die Tests haben zwei reale Lücken gefunden (ACL, schwacher Atomic T1098.004-1), nicht nur Haken gesetzt – genau das ist ihr Wert.
+
+Testlauf: `atomic/run-atomic.sh`, Coverage in `atomic/atomic-coverage.md`. Regel: Scan/Lateral nur gegen Honeypot oder redcanary.

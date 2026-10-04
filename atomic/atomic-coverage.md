@@ -10,7 +10,7 @@ Stand wird vom Testlauf (`run-atomic.sh`) aktualisiert.
 | T1571 | Non-standard port listener | – (nc) | 110181 | Velociraptor | offen |
 | T1046 | Network service scanning | 1 | 86601/110161 | Suricata | offen |
 | T1071.004 | DNS to external resolver | manuell (dig) | 110166 | Suricata | ERKANNT (2026-10-04) |
-| T1110 | SSH brute force → honeypot | – (hydra/ncrack) | 110133/110134 | Honeypot | offen |
+| T1110 | SSH brute force → honeypot | manuell (sshpass) | 110133/110134 | Honeypot | ERKANNT (2026-10-04) |
 | T1136.001 | Create local account | 1 | 5902 (Wazuh) | auth | offen |
 | T1070.002 | Clear/remove logs | 1 | 5104 (Wazuh) | auth | offen |
 | T1562.004 | Disable/modify firewall | 1 | – prüfen | auth | offen |
