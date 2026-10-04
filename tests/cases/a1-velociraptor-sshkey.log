@@ -1,0 +1,3 @@
+# desc: Neuer authorized_keys-Eintrag feuert 110182 (Level 10)
+# expect: 110182
+{"Diff": "added", "Host": "wazuh", "Path": "/root/.ssh/authorized_keys", "Line": "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIExample attacker@evil", "Time": "2026-10-04T14:07:03Z", "ClientId": "C.a5f299b56a62a45c", "_ts": 1791122896, "_Source": "C.a5f299b56a62a45c"}

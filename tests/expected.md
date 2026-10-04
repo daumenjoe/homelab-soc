@@ -86,3 +86,7 @@ Erzeugt mit `run-logtest.sh --table` – nicht von Hand pflegen.
 | `97-kismet-other-alert.log` | Sonstiger Kismet-Alert feuert 110176 | 1 | 110176 |
 | `98-kismet-new-ap.log` | Neuer Nachbar-AP feuert 110177 | 1 | 110177 |
 | `99-kismet-new-client.log` | Neuer fremder Client ohne Bezug feuert 110178 | 1 | 110178 |
+| `a0-velociraptor-listener.log` | Neuer Listening-Port feuert 110181 | 1 | 110181 |
+| `a1-velociraptor-sshkey.log` | Neuer authorized_keys-Eintrag feuert 110182 (Level 10) | 1 | 110182 |
+| `a2-velociraptor-cron.log` | Neue Cron-Zeile feuert 110183 | 1 | 110183 |
+| `a3-velociraptor-removed-negative.log` | Entfernte Eintraege (Diff=removed) erzeugen keinen Alert | 1 | none |

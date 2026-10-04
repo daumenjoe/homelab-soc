@@ -1,0 +1,57 @@
+name: Homelab.Events.Baseline
+description: |
+  Meldet Änderungen, die ein Angreifer nach dem Einstieg typischerweise hinterlässt und die Logs
+  nicht zuverlässig zeigen: neue Listening-Ports (Backdoor, Reverse-Shell-Listener), neue Einträge in
+  authorized_keys (Persistenz), neue Cron-Zeilen (Persistenz). Alle fünf Minuten per diff() gegen den
+  letzten Stand; die erste Runde nach dem Start ist der Bestand und wird nicht gemeldet.
+  Jede Zeile trägt den Hostnamen, damit ein SIEM sie zuordnen kann.
+type: CLIENT_EVENT
+
+parameters:
+  - name: Period
+    type: int
+    default: "300"
+
+sources:
+  - name: Listeners
+    query: |
+      SELECT Diff, Host, Pid, Name, IP, Port, Family,
+             timestamp(epoch=now()) AS Time
+      FROM diff(
+        query={
+          SELECT info().Hostname AS Host, Pid, Name,
+                 Laddr.IP AS IP, Laddr.Port AS Port, Family,
+                 format(format="%v/%v:%v", args=[Family, Laddr.IP, Laddr.Port]) AS Key
+          FROM netstat()
+          WHERE Status = 'LISTEN' AND Laddr.Port > 0
+        },
+        key="Key", period=Period)
+      WHERE Diff = 'added'
+
+  - name: AuthorizedKeys
+    query: |
+      SELECT Diff, Host, Path, Line, timestamp(epoch=now()) AS Time
+      FROM diff(
+        query={
+          SELECT info().Hostname AS Host, OSPath AS Path, Line,
+                 format(format="%v|%v", args=[OSPath, Line]) AS Key
+          FROM foreach(
+            row={ SELECT OSPath FROM glob(globs=["/root/.ssh/authorized_keys", "/home/*/.ssh/authorized_keys"]) },
+            query={ SELECT OSPath, Line FROM parse_lines(filename=OSPath) WHERE Line =~ "^(ssh-|ecdsa-|sk-)" })
+        },
+        key="Key", period=Period)
+      WHERE Diff = 'added'
+
+  - name: Cron
+    query: |
+      SELECT Diff, Host, Path, Line, timestamp(epoch=now()) AS Time
+      FROM diff(
+        query={
+          SELECT info().Hostname AS Host, OSPath AS Path, Line,
+                 format(format="%v|%v", args=[OSPath, Line]) AS Key
+          FROM foreach(
+            row={ SELECT OSPath FROM glob(globs=["/etc/crontab", "/etc/cron.d/*", "/var/spool/cron/crontabs/*", "/var/spool/cron/*"]) },
+            query={ SELECT OSPath, Line FROM parse_lines(filename=OSPath) WHERE Line =~ "^[^#\\s]" AND NOT Line =~ "^(SHELL|PATH|MAILTO|HOME)=" })
+        },
+        key="Key", period=Period)
+      WHERE Diff = 'added'

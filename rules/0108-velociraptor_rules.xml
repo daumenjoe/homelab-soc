@@ -1,0 +1,38 @@
+<group name="velociraptor,endpoint,">
+
+  <!-- Zeilen aus dem Velociraptor-Datastore (Client-Event-Artefakt Homelab.Events.Baseline):
+       neue Listening-Ports, neue authorized_keys-Eintraege, neue Cron-Zeilen. Jede Zeile traegt Host. -->
+  <rule id="110180" level="0">
+    <decoded_as>json</decoded_as>
+    <field name="Diff">^added$</field>
+    <field name="Host">\.+</field>
+    <description>Velociraptor baseline change on $(Host)</description>
+  </rule>
+
+  <!-- Persistenz: neuer SSH-Key -->
+  <rule id="110182" level="10">
+    <if_sid>110180</if_sid>
+    <field name="Line" type="pcre2">^(ssh-|ecdsa-|sk-)</field>
+    <description>Velociraptor: new SSH key in $(Path) on $(Host)</description>
+    <mitre><id>T1098.004</id></mitre>
+    <group>persistence,</group>
+  </rule>
+
+  <!-- Persistenz: neue Cron-Zeile -->
+  <rule id="110183" level="9">
+    <if_sid>110180</if_sid>
+    <field name="Path" type="pcre2">cron</field>
+    <description>Velociraptor: new cron entry on $(Host): $(Path): $(Line)</description>
+    <mitre><id>T1053.003</id></mitre>
+    <group>persistence,</group>
+  </rule>
+
+  <!-- Neuer Listening-Port: Backdoor, Reverse-Shell-Listener, oder einfach ein neuer Dienst -->
+  <rule id="110181" level="8">
+    <if_sid>110180</if_sid>
+    <field name="Port">^\d+$</field>
+    <description>Velociraptor: new listening port on $(Host): $(IP):$(Port) ($(Name), pid $(Pid))</description>
+    <mitre><id>T1571</id></mitre>
+  </rule>
+
+</group>

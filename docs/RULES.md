@@ -116,6 +116,15 @@ Erzeugt mit `scripts/gen-rule-table.py` – nicht von Hand pflegen.
 | 110177 | 3 | 110170 |  |  | WLAN: new access point nearby '$(kismet.ssid)' $(kismet.mac) ch $(kismet.channel) $(kismet.signal) dBm |
 | 110178 | 2 | 110170 |  |  | WLAN: new $(kismet.type) seen: $(kismet.mac) ($(kismet.manuf)) |
 
+## `0108-velociraptor_rules.xml`
+
+| ID | Level | Eltern | Frequenz | MITRE | Beschreibung |
+|---|---|---|---|---|---|
+| 110180 | 0 |  |  |  | Velociraptor baseline change on $(Host) |
+| 110182 | 10 | 110180 |  | T1098.004 | Velociraptor: new SSH key in $(Path) on $(Host) |
+| 110183 | 9 | 110180 |  | T1053.003 | Velociraptor: new cron entry on $(Host): $(Path): $(Line) |
+| 110181 | 8 | 110180 |  | T1571 | Velociraptor: new listening port on $(Host): $(IP):$(Port) ($(Name), pid $(Pid)) |
+
 ## `0900-docker_rules.xml`
 
 | ID | Level | Eltern | Frequenz | MITRE | Beschreibung |

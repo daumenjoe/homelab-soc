@@ -34,6 +34,7 @@ flowchart LR
 | FRITZ!Box | Ereignisprotokoll + TR-064 via `fritz-monitor.py` | JSON | 110140–110155 | Router-Logins und Brute-Force, Einstellungsänderungen, Port-Freigaben, neue Geräte, WLAN-Fehlanmeldungen, WAN/VPN/System |
 | Suricata | Mirror-Port, `eve-wazuh.json` (nur Alerts) | JSON | 110160–110168 | ET-Open-Signaturen nach Severity, eigene: DoH/DoT/DNS-Bypass per SNI und Port, SNMP-Discovery |
 | Kismet (WLAN) | REST-API via `kismet-wazuh.py` | JSON | 110170–110178 | Evil Twin, Deauth-Angriffe, unbekannte Clients am eigenen AP, Probes nach eigener SSID, neue Nachbarn |
+| Velociraptor | Datastore-Dateien der Client-Überwachung | JSON | 110180–110183 | neue Listening-Ports, SSH-Keys, Cron-Einträge auf allen Hosts (Persistenz, Backdoors) |
 | pihole-analytics | FTL-Datenbank + NRD-Liste | JSON | 110080, 110090–110099 | Korrelation NRD + DGA/Beaconing/Tunneling pro Client, Tunneling (viele verschiedene lange Subdomains), Beaconing (auch auf geblockte Domains), DGA, NXDOMAIN-Sturm pro Client, Newly Registered Domains, Heartbeat und Selbstüberwachung |
 
 Vollständige Regelliste mit Leveln, Eltern und MITRE-Mapping: [`docs/RULES.md`](docs/RULES.md) (generiert).
