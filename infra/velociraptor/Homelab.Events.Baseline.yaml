@@ -23,7 +23,7 @@ sources:
                  Laddr.IP AS IP, Laddr.Port AS Port, Family,
                  format(format="%v/%v:%v", args=[Family, Laddr.IP, Laddr.Port]) AS Key
           FROM netstat()
-          WHERE Status = 'LISTEN' AND Laddr.Port > 0
+          WHERE Status = 'LISTEN' AND Laddr.Port > 0 AND Laddr.Port < 32768 AND NOT Laddr.IP =~ "^127\\.|^::1"
         },
         key="Key", period=Period)
       WHERE Diff = 'added'
