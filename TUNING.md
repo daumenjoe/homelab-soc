@@ -196,3 +196,18 @@ T1136.001 (neuer Benutzer) wurde nicht erkannt, obwohl die Regel existiert und `
 ### Befund 27: Triage-Rückkopplung über Velociraptor-Listener (2026-10-05)
 
 Über Nacht 399 Triage-Läufe für Regel 110181 (neuer Listening-Port), alle vom LLM-Host. Ursache: Jede Ollama-Inferenz öffnet einen kurzlebigen localhost-Port (GPU-Runner, wechselnde PID); Velociraptor meldete jeden als „neuen Listener", die Meldung löste eine Triage aus, die wieder eine Inferenz und damit einen neuen Port erzeugte – eine selbsttragende Schleife. Der LLM-PC lief dadurch die ganze Nacht unter Last. **Fix:** Im Artefakt `Homelab.Events.Baseline` die Listener-Query auf echte Dienste eingegrenzt: keine 127.0.0.1/::1, keine ephemeren Ports (≥ 32768). **Lehre:** Eine Endpoint-Detection, die Nebenwirkungen des eigenen Stacks erfasst (hier: der Triage-Engine), kann sich selbst befeuern. Backdoor-Listener binden auf erreichbare Adressen und feste Ports – genau darauf filtern, localhost-Rauschen raus.
+
+### Befund 28: Sensor-Umzug auf Ubuntu 26.04 / Kernel 7.0 – Stolperfallen (2026-10-05)
+
+Neuaufbau auf frischer Karte statt In-Place (In-Place scheiterte praktisch an der qemu-Emulation beim chroot-Bau und am Risiko, Suricata/Kismet während `do-release-upgrade` zu verlieren). Vier Dinge, die auf 26.04 anders sind als auf 24.04 Server:
+
+1. **systemd-networkd beansprucht die Alfa-Karten.** Kismet bricht mit „set [device] managed true" ab. Auf 24.04 Server gab es das nicht. Fix: `/etc/systemd/network/25-alfa-unmanaged.network` mit `[Match] Name=wlx*` und `[Link] Unmanaged=yes`.
+2. **Kismet-Metapaket nicht installierbar.** `apt install kismet` zieht alle Capture-Module nach, darunter `kismet-capture-rtl433-v2` → `librtlsdr2`, das im noble-Repo auf 26.04 nicht auflösbar ist. Fix: nur `kismet-core kismet-capture-linux-wifi kismet-logtools` installieren (WLAN reicht). Kismet-Repo hat kein `resolute`, noble läuft.
+3. **Suricata-PPA hat `resolute`** (`oisf/suricata-stable`), also dort umstellen; Suricata 8.0.7 wie auf 24.04.
+4. **/var/log/kismet fehlt** nach Paketinstallation → Kismet-FATAL beim Logöffnen; Verzeichnis anlegen. Nach Kismet-Neuinstallation ist die DB frisch → **neuer API-Key** nötig, der alte aus dem Backup gibt HTTPError im Poller.
+
+Nicht vergessen (sonst still blind/leer): journald-Gruppe für `wazuh` (Befund 26), zweiter EVE-Output `eve-wazuh.json` in der frischen `suricata.yaml`, die systemd-Timer für `suricata-homenet` und `kismet-wazuh` (Skripte im Backup, Units nicht), ufw-Regeln (22, 2501) neu. Resultat: beide Radios produktiv (alfa24 = ACM 2,4 GHz, alfa56 = AXM 5/6 GHz, Kernel 7.0 trägt den mt7921u im Monitormodus, 6 h Soak bestanden).
+
+### Befund 29: Ollama Keep-Alive hielt Modell 2 h warm (2026-10-05)
+
+GPU/Lüfter liefen abends laut, obwohl keine Triage lief (0 Läufe/10 min). Ursache: `OLLAMA_KEEP_ALIVE=2h` (gesetzt für die Zweitmeinung, damit zwei Alerts kurz hintereinander nicht zweimal kalt laden) hielt gpt-oss:20b mit 14 GB geladen, die GPU trug Grundlast. Kein Fremdzugriff (ufw erlaubt nur den Manager, letzte echte Inferenz 2 h alt). Auf `30m` gesenkt: lange genug für eine Alert-Welle, der PC wird abends von allein leise.
