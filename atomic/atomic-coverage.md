@@ -12,7 +12,7 @@ Stand wird vom Testlauf (`run-atomic.sh`) aktualisiert.
 | T1071.004 | DNS to external resolver | manuell (dig) | 110166 | Suricata | ERKANNT (2026-10-04) |
 | T1110 | SSH brute force → honeypot | manuell (sshpass) | 110133/110134 | Honeypot | ERKANNT (2026-10-04) |
 | T1136.001 | Create local account | 1 | 5902 (Wazuh) | auth | offen |
-| T1070.002 | Clear/remove logs | 1 | 5104 (Wazuh) | auth | offen |
+| T1070.004 | Delete single file (/tmp) | 1 | — | FIM/auditd | NICHT ERKANNT: FIM deckt nur kritische Pfade (/etc, /usr/bin), /tmp nicht; auditd nicht aktiv (2026-10-05) |
 | T1562.004 | Disable/modify firewall | 1 | – prüfen | auth | offen |
 | T1046/T1018 | Remote system discovery | 1 | 86601 | Suricata | offen |
 

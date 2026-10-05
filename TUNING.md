@@ -211,3 +211,7 @@ Nicht vergessen (sonst still blind/leer): journald-Gruppe für `wazuh` (Befund 2
 ### Befund 29: Ollama Keep-Alive hielt Modell 2 h warm (2026-10-05)
 
 GPU/Lüfter liefen abends laut, obwohl keine Triage lief (0 Läufe/10 min). Ursache: `OLLAMA_KEEP_ALIVE=2h` (gesetzt für die Zweitmeinung, damit zwei Alerts kurz hintereinander nicht zweimal kalt laden) hielt gpt-oss:20b mit 14 GB geladen, die GPU trug Grundlast. Kein Fremdzugriff (ufw erlaubt nur den Manager, letzte echte Inferenz 2 h alt). Auf `30m` gesenkt: lange genug für eine Alert-Welle, der PC wird abends von allein leise.
+
+### Befund 30 (Hardware): e1000e/i219 Hardware Unit Hang unter Last (2026-10-05)
+
+Während eines Portscan-Tests (redcanary → Honeypot) fiel der komplette Proxmox-Host vom Netz: lokale Konsole lebte, aber kein Ping. `dmesg`: 290× „e1000e 0000:00:1f.6 nic0: Detected Hardware Unit Hang" ab Scan-Zeitpunkt, TX-Queue blockiert (`TDT <0>`, `next_to_watch.status <0>`), Link up. Das ist der bekannte TSO/Offload-Defekt der Intel-i219-NIC im M90q, nicht der Scan selbst – der war nur die Lastspitze, die ihn auslöste. `modprobe -r e1000e` holte das Netz nicht zurück, erst Reboot. **Fix:** Offloads abschalten, dauerhaft als `post-up /sbin/ethtool -K nic0 tso off gso off gro off tx off rx off sg off` am vmbr0 in /etc/network/interfaces. **Lehre:** Ein Angriffstest kann latente Hardware-Bugs triggern – der Befund ist echt und wichtig (der Host ist Single Point of Failure für fast alle Sensoren), auch wenn er nichts mit der Detection-Logik zu tun hat.
