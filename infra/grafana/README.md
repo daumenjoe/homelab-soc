@@ -16,4 +16,4 @@ Am ersten Tag zeigte die Kurve des Backup-Rechners auf die Sekunde, wann er unte
 Netz verlor (Befund 23).
 
 **Offen:** Suricata-/Kismet-Statistiken, Wazuh-Indexer als Datenquelle (Alert-Volumen als Kurve),
-Fritzbox-`metrics.json` auf die 6591 zuschneiden.
+Fritzbox-`metrics.json` auf die 6591 zugeschnitten: 12 DSL/PPP-Aktionen entfernt, die auf der Kabelbox 401 werfen (`WANPPPConnection:GetInfo`, `WANIPConnection:GetStatusInfo`, `WANCommonInterfaceConfig:GetCommonLinkProperties`); DOCSIS/Energie/Host kommen ohnehin über `metrics-lua_cable.json`. Bereinigte Datei: `metrics-6591.json`. Log fehlerfrei, 233 Reihen.
