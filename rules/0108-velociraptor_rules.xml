@@ -2,7 +2,7 @@
 
   <!-- Zeilen aus dem Velociraptor-Datastore (Client-Event-Artefakt Homelab.Events.Baseline):
        neue Listening-Ports, neue authorized_keys-Eintraege, neue Cron-Zeilen. Jede Zeile traegt Host. -->
-  <rule id="110180" level="0">
+  <rule id="110180" level="2">
     <decoded_as>json</decoded_as>
     <field name="Diff">^added$</field>
     <field name="Host">\.+</field>

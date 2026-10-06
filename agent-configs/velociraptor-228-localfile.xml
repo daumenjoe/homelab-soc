@@ -1,0 +1,8 @@
+<!-- Gehoert in /var/ossec/etc/ossec.conf auf dem Velociraptor-Host (.228),
+     vor </ossec_config>. Danach: systemctl restart wazuh-agent
+     Bruecke Velociraptor-Datastore -> Wazuh (Befund 32). -->
+<localfile>
+  <log_format>json</log_format>
+  <location>/var/lib/velociraptor/clients/*/monitoring/Homelab.Events.Baseline/*/*.json</location>
+  <label key="vr_source">homelab_baseline</label>
+</localfile>
