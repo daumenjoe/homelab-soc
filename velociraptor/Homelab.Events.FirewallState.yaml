@@ -1,0 +1,68 @@
+name: Homelab.Events.FirewallState
+description: |
+  Überwacht den nftables-Zustand als Menge von Chains (eine Zeile je table/chain)
+  und meldet, wenn Chains verschwinden oder neu auftauchen. Ergänzt die auditd-
+  Erkennung (Wazuh 110190ff, sieht den *Aufruf* von nft/iptables) um den
+  *Zustand*: greift auch, wenn die Firewall über Netlink, ein umbenanntes Binary
+  oder die iptables-Kompatibilitätsschicht (ufw, Docker) verändert wird.
+  MITRE T1562.004.
+
+  Maß ist die Chain-Menge, nicht ein Regel-Hash: Docker ändert bei jedem
+  Container-Start Regeln innerhalb bestehender Chains (Rauschen), aber keine
+  Chains. ufw disable, nft flush ruleset, iptables -X entfernen Chains (Signal).
+  Regelzahl je Chain wird als Zusatzfeld mitgegeben (informativ).
+
+  Alle 60 Sekunden (Parameter Period) per diff(); die erste Runde nach dem
+  Start ist der Bestand und wird nicht gemeldet. Meldet added UND removed.
+  Quelle: nft -j list ruleset (JSON). VQL-Bausteine am 2026-10-09 auf llm
+  (ufw, 320 Zeilen) gegen Python-Sollwerte verifiziert.
+
+type: CLIENT_EVENT
+
+parameters:
+  - name: Period
+    type: int
+    default: "60"
+  - name: NftPath
+    default: /usr/sbin/nft
+
+sources:
+  - name: Chains
+    query: |
+      -- Bewusst "=" (lazy): die LETs stehen auf Source-Ebene, ein "<=" wuerde
+      -- Raw beim Artefakt-Start einfrieren und das Artefakt blind machen.
+      -- Preis: nft -j laeuft 3x je Tick (Objs/Chains/CountDict referenzieren
+      -- Raw). Auf 9 Hosts je Minute harmlos; verifiziert am 2026-10-09.
+      LET Raw = SELECT Stdout FROM execve(argv=[NftPath, "-j", "list", "ruleset"], length=10000000)
+
+      -- nftables-JSON: Array aus {metainfo}|{table}|{chain}|{rule}; jedes Objekt
+      -- hat genau einen Schluessel. get() statt direktem Zugriff, sonst meldet
+      -- VQL jeden fehlenden Schluessel als Fehler.
+      -- Aliase ChainObj/RuleObj statt chain/rule: "chain" ist ein VQL-Plugin,
+      -- der Artefakt-Linter lehnt einen gleichnamigen Alias ab.
+      LET Objs = SELECT get(field="chain") AS ChainObj, get(field="rule") AS RuleObj
+                 FROM foreach(row=parse_json(data=Raw[0].Stdout).nftables)
+
+      LET Chains = SELECT ChainObj.family + " " + ChainObj.table AS Table,
+                          ChainObj.name AS Chain,
+                          ChainObj.family + " " + ChainObj.table + "/" + ChainObj.name AS Key
+                   FROM Objs WHERE ChainObj
+
+      -- Regeln je Chain als Dict, Lookup per get(). Parametrisierte LET-
+      -- Funktionen und korrelierte Subqueries sahen den aeusseren Key nicht;
+      -- das Dict ist die Form, die funktioniert. Bewusst "=" statt "<=":
+      -- im Event-Artefakt wuerde "<=" das Dict beim Start einfrieren.
+      LET CountDict = to_dict(item={
+            SELECT RuleObj.family + " " + RuleObj.table + "/" + RuleObj.chain AS _key,
+                   count() AS _value
+            FROM Objs WHERE RuleObj GROUP BY _key })
+
+      SELECT Diff, Host, Table, Chain, Rules, timestamp(epoch=now()) AS Time
+      FROM diff(
+        query={
+          SELECT info().Hostname AS Host, Table, Chain, Key,
+                 get(item=CountDict, field=Key, default=0) AS Rules
+          FROM Chains
+        },
+        key="Key", period=Period)
+      WHERE Diff = 'added' OR Diff = 'removed'

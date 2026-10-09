@@ -19,7 +19,7 @@ REPO="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 WAZUH_HOST="wazuh"
 VELO_HOST="velociraptor"
 VELO_BIN="/usr/local/bin/velociraptor --config /etc/velociraptor/server.config.yaml"
-ARTIFACTS=(Homelab.Events.Baseline)
+ARTIFACTS=(Homelab.Events.Baseline Homelab.Events.FirewallState)
 
 RULES_DIR="$REPO/rules"
 AGENT_DIR="$REPO/agent-configs"

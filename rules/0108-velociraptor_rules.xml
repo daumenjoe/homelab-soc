@@ -34,5 +34,39 @@
     <description>Velociraptor: new listening port on $(Host): $(IP):$(Port) ($(Name), pid $(Pid))</description>
     <mitre><id>T1571</id></mitre>
   </rule>
+  <!-- Homelab.Events.FirewallState: Chain-Menge des nftables-Rulesets.
+       Eigene Basis, weil 110180 nur Diff=added kennt und hier "removed" das
+       eigentliche Signal ist. Felder: Diff, Host, Table, Chain, Rules. -->
+  <rule id="110184" level="10">
+    <decoded_as>json</decoded_as>
+    <field name="Table">\.+</field>
+    <field name="Chain">\.+</field>
+    <field name="Diff" type="pcre2">^(added|removed)$</field>
+    <description>Velociraptor: firewall chain $(Diff) on $(Host): $(Table)/$(Chain) ($(Rules) rules)</description>
+    <mitre><id>T1562.004</id></mitre>
+    <group>firewall_state,</group>
+  </rule>
 
+  <!-- Nur removed, gleiche Stufe - damit die Frequenzregel darunter sauber
+       nur Entfernungen zaehlt. (Ein <field> in einer if_matched_sid-Regel
+       prueft nur das aktuelle Event, nicht die gezaehlten; deshalb hier
+       getrennt.) -->
+  <rule id="110186" level="10">
+    <if_sid>110184</if_sid>
+    <field name="Diff">^removed$</field>
+    <description>Velociraptor: firewall chain removed on $(Host): $(Table)/$(Chain)</description>
+    <mitre><id>T1562.004</id></mitre>
+    <group>firewall_state,</group>
+  </rule>
+
+  <!-- Schwall von removed = Firewall abgeschaltet/geleert (ufw disable,
+       nft flush, iptables -X). 5 Chains in 2 min weg = aktiver Vorfall.
+       Ergaenzt 110191 (auditd sieht den Aufruf) um den Zustand. -->
+  <rule id="110185" level="12" frequency="5" timeframe="120">
+    <if_matched_sid>110186</if_matched_sid>
+    <same_field>Host</same_field>
+    <description>T1562.004: firewall torn down on $(Host) - 5+ chains removed in 2 min</description>
+    <mitre><id>T1562.004</id></mitre>
+    <group>firewall_state,attack_in_progress,</group>
+  </rule>
 </group>
