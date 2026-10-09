@@ -21,8 +21,11 @@
     <description>Pi-hole: external DNS event, non-CDN</description>
   </rule>
 
-  <!-- Blocked -->
-  <rule id="110010" level="3">
+  <!-- Blocked: einzelner Block ist keine Sicherheitsinformation, sondern
+       Werbe-/Telemetrie-Rauschen (70 % des Tagesvolumens, Befund 35).
+       Level 1: bleibt dekodiert und im Index (Grafana-Drilldown "Top geblockte
+       Domains" funktioniert weiter), faellt aus Tageszahl und Dashboard. -->
+  <rule id="110010" level="1">
     <if_sid>110002, 110003</if_sid>
     <field name="dns.block_reason">\w+</field>
     <description>Pi-hole: domain $(dns.domain) blocked ($(dns.block_reason))</description>
@@ -104,6 +107,18 @@
     <if_sid>110003</if_sid>
     <field name="dns.domain" type="pcre2">(?i)\.(xyz|top|tk|ml|ga|cf|gq|zip|mov|click|cam)$</field>
     <description>Pi-hole: query to high-abuse TLD $(dns.domain) from $(srcip)</description>
+  </rule>
+  
+    <!-- Retry-Loop: dieselbe geblockte Domain wird gehaemmert. Ein Geraet (oder
+       ein SDK darin) ignoriert den Block und fragt im Sekundentakt weiter.
+       Das ist das eigentliche Signal: nicht "geblockt", sondern "gibt nicht auf".
+       Client-IP steht nicht in der Block-Zeile (dnsmasq-Format), daher nur
+       nach Domain; Client-Zuordnung ueber pihole-analytics (FTL-DB). -->
+  <rule id="110061" level="5" frequency="30" timeframe="600">
+    <if_matched_sid>110010</if_matched_sid>
+    <same_field>dns.domain</same_field>
+    <description>Pi-hole: $(dns.domain) 30+ mal in 10 min angefragt trotz Block (Retry-Loop / Telemetrie-SDK)</description>
+    <group>dns_blocked,pihole_noise,</group>
   </rule>
 
   <!-- TXT-Queries mit verdächtigem Namen: eigener Zählpfad fürs Tunneling.

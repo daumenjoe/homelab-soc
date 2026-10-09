@@ -1,0 +1,22 @@
+<!--
+  0930-apparmor_overrides.xml
+  Stillregeln fuer bekannte AppArmor-Denials. MUSS nach der Standard-AppArmor-
+  Regeldatei laden (die 52002 definiert), sonst greift if_sid nicht (Befund 33).
+  Standard-Decoder extrahiert nur status/extra_data -> Regex gegen die Rohzeile.
+-->
+<group name="apparmor,local,">
+
+  <!-- Laptop (ChS): Discord-Snap liest fremde Prozesse (/proc/PID/cmdline) oder
+       haengt sich per ptrace an - Spielaktivitaets-Erkennung. Snap-Profil blockt
+       das, zu Recht. ~150 x 52002 pro 2 Tage. Nur dieses Profil + diese zwei
+       Zugriffsarten auf Level 1; jedes andere DENIED bleibt 52002/L3.
+       Reihenfolge der Felder in der Zeile ist nicht fix (operation= steht bei
+       ptrace VOR profile=), daher zwei Lookaheads statt einer Sequenz. -->
+  <rule id="110199" level="1">
+    <if_sid>52002</if_sid>
+    <regex type="pcre2">(?=.*profile="snap\.discord\.discord")(?=.*(operation="ptrace"|name="/proc/\d+/cmdline"))</regex>
+    <description>AppArmor: Discord-Snap scannt fremde Prozesse (Spielaktivitaet), von Sandbox blockiert - bekannt, kein Alert</description>
+    <group>apparmor_known,</group>
+  </rule>
+
+</group>

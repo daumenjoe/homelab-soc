@@ -1,17 +1,26 @@
 <!--
-  0910-defense_evasion_rules.xml
+  0920-defense_evasion_rules.xml
   Defense-Evasion ueber auditd-Execve (Key fw_tamper). MITRE T1562.004.
-  Praefix 0910: MUSS nach 0365-auditd_rules.xml laden, damit Parent 80700
-  (Audit: Messages grouped) beim Parsen bekannt ist (Befund 33).
-  Felder verifiziert (live, archives.json):
-    audit.key, audit.exe, audit.auid (numerisch), audit.execve.a0/a1/a2.
-  Hinweis: $(agentname) expandiert in dieser Wazuh-Version (4.14.8) in
-  <description> NICHT -> Host steht ohnehin im agent-Block jedes Alerts.
-  auid ist numerisch (Decoder liefert keinen Klartext); 1000 = neo via passwd.
+  Praefix 0920: MUSS nach 0365-auditd_rules.xml laden (Parent 80700), und
+  0910 ist bereits suricata. (Befund 33)
+  Felder verifiziert (live): audit.key, audit.exe, audit.auid (numerisch),
+  audit.execve.a0/a1/a2. $(agentname) expandiert in 4.14.8 nicht.
+  auid 4294967295 = unset (kein Login, Dienst/Timer).
 -->
 <group name="audit,defense_evasion,">
 
-  <!-- Basis: Firewall-Werkzeug aufgerufen (Key fw_tamper). Level 7 = sichtbar. -->
+  <!-- Stillregel ZUERST: Dienste ohne Login-Session, die nur lesen (list).
+       Faengt den periodischen Velociraptor/nftables-Poll ab (Befund 34).
+       flush/delete ohne Login laufen NICHT hier rein -> weiter zu 110191. -->
+  <rule id="110189" level="0">
+    <if_sid>80700</if_sid>
+    <field name="audit.key">fw_tamper</field>
+    <field name="audit.auid">^4294967295$</field>
+    <field name="audit.execve.a1">^list$</field>
+    <description>Firewall-Werkzeug: Dienst liest Ruleset (auid unset, nur list) - kein Alert</description>
+  </rule>
+
+  <!-- Basis: interaktiver oder nicht-lesender Firewall-Werkzeug-Aufruf. -->
   <rule id="110190" level="7">
     <if_sid>80700</if_sid>
     <field name="audit.key">fw_tamper</field>
@@ -20,7 +29,7 @@
     <group>firewall_tamper,</group>
   </rule>
 
-  <!-- Eskalation: flush/disable/delete im ersten Argument = aktives Abschalten -->
+  <!-- Eskalation: flush/disable/delete = aktives Abschalten, egal von wem -->
   <rule id="110191" level="12">
     <if_sid>110190</if_sid>
     <field name="audit.execve.a1" type="pcre2">(?i)^(flush|disable|delete)$</field>
