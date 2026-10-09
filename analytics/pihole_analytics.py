@@ -12,6 +12,7 @@ Detections
   nxdomain_ratio  one client producing many NXDOMAIN for distinct domains
   nrd             registrable domain found in a newly-registered-domains list
   tunneling       one client, one domain, many DIFFERENT long subdomains (data in names)
+  blocked_hammering  one client hammering one blocked registrable domain (retry loop, no backoff)
   correlation     nrd plus dga, beaconing and/or tunneling for the same client and domain
   heartbeat       one event per run with counters (job liveness)
 
@@ -31,7 +32,7 @@ import time
 from collections import Counter, defaultdict
 from pathlib import Path
 
-VERSION = "1.3.0"
+VERSION = "1.4.0"
 
 # --------------------------------------------------------------------------
 # Configuration
@@ -86,6 +87,19 @@ DEFAULTS = {
         "min_unique": 60,             # distinct long subdomains in the window
         "min_payload_chars": 2500,    # summed length of those subdomains
         "min_new_ratio": 0.4,         # distinct names / queries; browsers ask A+AAAA+HTTPS = 0.33
+        "cooldown_seconds": 21600,
+    },
+    "hammering": {
+        # One client asking the same BLOCKED registrable domain min_blocked times
+        # in the window AND at >= min_rate_per_min over its active span (first to
+        # last hit). Both together: 100 blocks spread over 6 h is app behaviour,
+        # 100 blocks in 10 minutes is a retry loop without backoff (Befund 35).
+        # Aggregated on the registrable domain because telemetry SDKs (conviva)
+        # rotate the subdomain per session. Not a security signal: does not feed
+        # the correlation. It names the client the dnsmasq block line lacks.
+        "min_blocked": 100,
+        "min_rate_per_min": 2.0,
+        "min_span_seconds": 60,       # below one minute of span no rate is meaningful
         "cooldown_seconds": 21600,
     },
     "correlation": {
@@ -584,6 +598,55 @@ def detect_tunneling(rows, cfg, allow, state, now, emit):
              window_seconds=cfg["beacon"]["window_seconds"])
 
 
+def detect_blocked_hammering(rows, cfg, allow, state, now, emit):
+    """A device (or an SDK inside it) that does not accept a DNS block as an
+    answer and retries in a tight loop. Floods the SIEM (Befund 35: 70 % of
+    daily volume from one smart TV) and can reveal a device in network standby
+    that is never really off. Noise, not an attack - hence no note_signal()."""
+    c = cfg["hammering"]
+    per = defaultdict(lambda: {"n": 0, "first": None, "last": None, "fqdns": Counter()})
+    for ts, status, domain, client in rows:
+        if status not in BLOCKED_STATUS:
+            continue
+        d = normalise(domain)
+        regdom, _ = registrable(d)
+        if allow.allows(d, regdom):
+            continue
+        ts = int(ts)
+        e = per[(client, regdom)]
+        e["n"] += 1
+        e["first"] = ts if e["first"] is None else min(e["first"], ts)
+        e["last"] = ts if e["last"] is None else max(e["last"], ts)
+        e["fqdns"][d] += 1
+
+    for (client, regdom), e in per.items():
+        if e["n"] < c["min_blocked"]:
+            continue
+        span = e["last"] - e["first"]
+        if span < c["min_span_seconds"]:
+            continue
+        rate = e["n"] / (span / 60.0)
+        if rate < c["min_rate_per_min"]:
+            continue
+        key = f"hammering|{client}|{regdom}"
+        if state.in_cooldown(key, now, c["cooldown_seconds"]):
+            continue
+        state.mark(key, now)
+        top_fqdn, top_n = e["fqdns"].most_common(1)[0]
+        emit("blocked_hammering",
+             client=client,
+             registrable=regdom,
+             blocked_queries=e["n"],
+             distinct_fqdns=len(e["fqdns"]),
+             top_fqdn=top_fqdn,
+             top_fqdn_queries=top_n,
+             rate_per_min=round(rate, 1),
+             span_seconds=span,
+             first_seen=e["first"],
+             last_seen=e["last"],
+             window_seconds=cfg["beacon"]["window_seconds"])
+
+
 def detect_correlation(cfg, state, now, emit):
     """A newly registered domain that ALSO looks generated or is contacted at
     fixed intervals by the same client. Each signal alone is mostly benign;
@@ -656,6 +719,7 @@ def main():
         detect_dga_and_nrd(new_rows, cfg, allow, nrd, state, now, emit.emit)
         detect_beaconing(win_rows, cfg, allow, state, now, emit.emit)
         detect_tunneling(win_rows, cfg, allow, state, now, emit.emit)
+        detect_blocked_hammering(win_rows, cfg, allow, state, now, emit.emit)
         detect_correlation(cfg, state, now, emit.emit)
 
         if new_rows:

@@ -84,5 +84,18 @@
     <mitre><id>T1071.004</id><id>T1048.003</id></mitre>
     <group>dns_tunneling,</group>
   </rule>
+  
+  <!-- blocked_hammering: ein Client haemmert eine geblockte registrierbare
+       Domain (>=100 Blocks, >=3/min ueber die aktive Spanne). Kein Angriff,
+       sondern ein Geraet/SDK ohne Backoff - verrauscht das SIEM und verraet
+       Geraete im Netzwerk-Standby (Befund 35). Liefert den Client, den die
+       dnsmasq-Blockzeile (110010/110061) nicht hat. Level 5 wie 110061;
+       das ist die Antwort auf "wer war das". -->
+  <rule id="110086" level="5">
+    <if_sid>110090</if_sid>
+    <field name="pihole_analytics.detection">^blocked_hammering$</field>
+    <description>Pi-hole analytics: $(pihole_analytics.client) hammert geblockte Domain $(pihole_analytics.registrable) ($(pihole_analytics.blocked_queries) Blocks, $(pihole_analytics.rate_per_min)/min, $(pihole_analytics.distinct_fqdns) Subdomains)</description>
+    <group>pihole_noise,</group>
+  </rule>
 
 </group>
