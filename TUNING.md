@@ -564,7 +564,6 @@ redcanary *während* eines Laufs aus, meldet der Watchdog das nicht.
   Watchdog mit `none (>30h)` zum Glück bereits.
   
   watchdog: fix pve:backups after backup move, optional agents, sync-check for Pis
-
 - PVE token recreated without privsep; custom role WatchdogBackup
   (content listing filters per volume, needs AllocateSpace + VM.Backup)
 - optional_agents: redcanary no longer counts as down
@@ -588,6 +587,4 @@ redcanary *während* eines Laufs aus, meldet der Watchdog das nicht.
   nie `sed -i` auf ein Suchergebnis ohne vorher zu schauen, was es ist.
 
 ### Kleinkram (neu, 2026-10-08)
-- 292 x AppArmor DENIED auf dem Laptop (ChS) an einem Tag. Profil pruefen:
-  `journalctl -k | grep apparmor=\"DENIED\" | grep -oE 'profile=\"[^\"]*\"' | sort | uniq -c`
-- Regeldatei-Uebersicht: neue Zeile `0920-defense_evasion_rules.xml | 110189-110192 | auditd`
+
