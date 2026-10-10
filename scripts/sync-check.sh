@@ -8,6 +8,9 @@
 # Quellen:
 #   wazuh:        /var/ossec/etc/rules/0*.xml, /var/ossec/etc/shared/*/agent.conf
 #   velociraptor: Artefakt-Definitionen aus ARTIFACTS (unten)
+#   pis:          Einzeldateien aus PI_FILES (unten), Format host:live:repo[:redact]
+#                 "redact" schwaerzt Werte von token/password/secret/key/ntfy_url in JSON,
+#                 im Repo liegt dann die geschwaerzte Fassung (z.B. *.example).
 #
 # Richtung ist bewusst nur live -> repo. Deploy ins System bleibt manuell,
 # weil er einen Manager-Restart braucht, den man sehen will.
@@ -20,6 +23,11 @@ WAZUH_HOST="wazuh"
 VELO_HOST="velociraptor"
 VELO_BIN="/usr/local/bin/velociraptor --config /etc/velociraptor/server.config.yaml"
 ARTIFACTS=(Homelab.Events.Baseline Homelab.Events.FirewallState)
+PI_FILES=(
+    "pihole:/usr/local/bin/pihole_analytics.py:analytics/pihole_analytics.py"
+    "watchdog:/usr/local/bin/homelab-watchdog.py:infra/watchdog/watchdog.py"
+    "watchdog:/etc/watchdog.json:infra/watchdog/watchdog.json.example:redact"
+)
 
 RULES_DIR="$REPO/rules"
 AGENT_DIR="$REPO/agent-configs"
@@ -45,7 +53,30 @@ fetch_live() {
     for a in "${ARTIFACTS[@]}"; do
         ssh "$VELO_HOST" "$VELO_BIN artifacts show $a" > "$WORK/live-velo/$a.yaml"
     done
-    echo "   $(ls "$WORK/live-rules" | wc -l) Regeldateien, $(ls "$WORK/shared" | wc -l) Gruppen, ${#ARTIFACTS[@]} Artefakt(e)"
+    # Einzeldateien auf den Pis
+    mkdir -p "$WORK/live-pi"
+    for spec in "${PI_FILES[@]}"; do
+        IFS=: read -r host live repo flag <<< "$spec"
+        dest="$WORK/live-pi/$repo"; mkdir -p "$(dirname "$dest")"
+        ssh "$host" "sudo cat '$live'" > "$dest"
+        if [[ "${flag:-}" == "redact" ]]; then
+            python3 - "$dest" <<'PY'
+import json, re, sys
+p = sys.argv[1]
+SECRET = re.compile(r"(token|password|passwd|secret|api_?key|ntfy_url)$", re.I)
+def walk(o):
+    if isinstance(o, dict):
+        return {k: ("<REDACTED>" if SECRET.search(k) and isinstance(v, str) else walk(v)) for k, v in o.items()}
+    if isinstance(o, list):
+        return [walk(v) for v in o]
+    return o
+d = walk(json.load(open(p)))
+with open(p, "w") as f:
+    json.dump(d, f, indent=2, ensure_ascii=False); f.write("\n")
+PY
+        fi
+    done
+    echo "   $(ls "$WORK/live-rules" | wc -l) Regeldateien, $(ls "$WORK/shared" | wc -l) Gruppen, ${#ARTIFACTS[@]} Artefakt(e), ${#PI_FILES[@]} Pi-Datei(en)"
 }
 
 # ---------- Vergleich ----------
@@ -81,6 +112,15 @@ compare() {
             if diff -q "$WORK/live-velo/$a.yaml" "$VELO_DIR/$a.yaml" >/dev/null; then echo "same      velociraptor/$a.yaml"; else echo "differs   velociraptor/$a.yaml  $WORK/live-velo/$a.yaml"; fi
         else
             echo "only-live velociraptor/$a.yaml  $WORK/live-velo/$a.yaml"
+        fi
+    done
+    # Pi-Dateien
+    for spec in "${PI_FILES[@]}"; do
+        IFS=: read -r host live repo flag <<< "$spec"
+        if [[ -f "$REPO/$repo" ]]; then
+            if diff -q "$WORK/live-pi/$repo" "$REPO/$repo" >/dev/null; then echo "same      $repo"; else echo "differs   $repo  $WORK/live-pi/$repo"; fi
+        else
+            echo "only-live $repo  $WORK/live-pi/$repo"
         fi
     done
 }

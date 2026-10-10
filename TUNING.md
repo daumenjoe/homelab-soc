@@ -498,6 +498,78 @@ einschalten" und WoWLAN keine Blocks mehr zwischen 0 und 6 Uhr. Der TV ist
 aus, wenn er aus ist. Tagsueber bei Nutzung 2–4 x 110061 je Sitzung, das ist
 das neue Normalbild.
 
+### Befund 36: Watchdog-Backup-Check seit dem Umbau auf SSD/USB rot (2026-10-10)
+
+**Symptom:** `BAD pve:backups local-backup none (>30h), usb-backup none (>192h)`
+seit dem Umzug der Backups von der flepo auf lokale SSD + USB (Befund 23).
+`pvesm status` zeigt beide Storages aktiv, `pvesh get .../content` als root
+liefert je 54 Einträge. Die API antwortet dem Watchdog-Token mit HTTP 200 und
+`{"data":[]}`. Die Push-Nachricht kam, wurde erkannt, aber nicht nachgezogen.
+
+**Ursache, zwei Schichten:**
+
+1. Der API-Token `watchdog@pve!monitor` war mit Privilege Separation angelegt
+   (`privsep 1`). Ein solcher Token erbt die ACL seines Users *nicht*, sondern
+   hat nur, was ihm selbst zugewiesen wurde: nichts. `pveum acl list` zeigte
+   nur den User-Eintrag `/ PVEAuditor user watchdog@pve`, keinen Token-Eintrag.
+   Behoben durch Neuanlage mit `--privsep 0` (der Token stand ohnehin im Chat,
+   also rotiert).
+2. Danach immer noch leer. Der Content-Handler
+   (`PVE::API2::Storage::Content::index`) prüft jeden Eintrag einzeln mit
+   `check_volume_access()` und lässt stillschweigend weg, was durchfällt. Für
+   Backups verlangt diese Prüfung `Datastore.AllocateSpace` auf dem Storage
+   **und** `VM.Backup` auf `/vms/<vmid>`. PVEAuditor hat keins von beiden;
+   `Datastore.Audit` reicht nur für den Storage-Status und für ISOs/Templates.
+   Daher: Status sichtbar, Liste leer, kein 403. Ein Patch, der die Prüfung
+   aus dem Listing entfernt (pve-devel, Juli 2025, Bug #5492, Begründung
+   wörtlich "monitor backup health"), ist in PVE 9 nicht enthalten.
+
+**Fix:** eigene Rolle, eng gescoped, PVEAuditor auf `/` bleibt:
+
+```
+pveum role add WatchdogBackup -privs 'Datastore.Audit,Datastore.AllocateSpace,VM.Audit,VM.Backup'
+pveum acl modify /storage/local-backup -user watchdog@pve -role WatchdogBackup
+pveum acl modify /storage/usb-backup  -user watchdog@pve -role WatchdogBackup
+pveum acl modify /vms                 -user watchdog@pve -role WatchdogBackup
+```
+
+Bewusst in Kauf genommen: `VM.Backup` ist nicht rein lesend (Backup anstoßen,
+wiederherstellen). Rein lesende Alternative wäre die Auswertung der
+vzdump-Tasks unter `/nodes/pve/tasks` statt der Content-Liste; Umbau des
+Checks, nicht nur der Rechte. Notiert, nicht gebaut.
+
+**Diagnoseweg, der funktioniert hat:** Token-Rechte aus Sicht der API
+(`/access/permissions?path=…`) und aus Sicht von `pveum user token
+permissions` vergleichen; `pveproxy/access.log` lesen, um Host und Antwortgröße
+zu bestätigen (`200 11` = leere Liste); erst dann den Handler-Code nachlesen.
+Das hat zwei falsche Vermutungen (falsche Storage-Konfig, falscher Host) in
+je einem Schritt erledigt.
+
+**Nebenbefund:** `BAD wazuh:agents 13/14 active, down: redcanary`. Die
+Atomic-VM ist absichtlich nur während der Tests an. Ein Agent, der planmäßig
+aus ist, darf den Check nicht dauerhaft rot färben, sonst wird der echte
+Ausfall überlesen. Neu: `optional_agents` in `/etc/watchdog.json`; Ausgabe
+`OK wazuh:agents 13/14 active, off (optional): redcanary`. Preis: fällt
+redcanary *während* eines Laufs aus, meldet der Watchdog das nicht.
+
+**Lehren:**
+- Nach jedem Umbau am überwachten System den Wächter einmal von Hand laufen
+  lassen und jede Zeile lesen, nicht nur auf den Push warten.
+- Ein BAD, das dauerhaft bleibt, ist ein Check, der etwas Falsches prüft,
+  nicht ein Zustand, an den man sich gewöhnt. Zwei Checks waren seit Tagen
+  rot; einer davon war echt.
+- PVE antwortet bei fehlenden Rechten auf Listen-Endpunkten mit 200 und
+  leerer Liste, nicht mit 403. Ein Monitoring-Check gegen solche Endpunkte
+  muss "leer" als Fehler behandeln, nicht als "keine Backups": das tut der
+  Watchdog mit `none (>30h)` zum Glück bereits.
+  
+  watchdog: fix pve:backups after backup move, optional agents, sync-check for Pis
+
+- PVE token recreated without privsep; custom role WatchdogBackup
+  (content listing filters per volume, needs AllocateSpace + VM.Backup)
+- optional_agents: redcanary no longer counts as down
+- sync-check.sh: PI_FILES with redacted watchdog config
+- TUNING: finding 36
 ---
 
 ### Korrekturen (2026-10-09)

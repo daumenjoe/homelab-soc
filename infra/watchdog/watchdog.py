@@ -53,7 +53,7 @@ def check_dns(server, name):
     return ok, r.stdout.strip().split("\n")[0] if ok else "no answer"
 
 
-def check_wazuh_agents(api, user, password, verify):
+def check_wazuh_agents(api, user, password, verify, optional=()):
     """Return (ok, detail) with the list of agents that are not active."""
     try:
         tok = requests.post(f"{api}/security/user/authenticate", auth=(user, password), verify=verify, timeout=8)
@@ -63,8 +63,9 @@ def check_wazuh_agents(api, user, password, verify):
                          params={"select": "name,status", "limit": 100})
         r.raise_for_status()
         agents = [a for a in r.json()["data"]["affected_items"] if a.get("name") != "wazuh-manager" and a.get("id") != "000"]
-        bad = sorted(a["name"] for a in agents if a.get("status") != "active")
-        return not bad, f"{len(agents) - len(bad)}/{len(agents)} active" + (f", down: {', '.join(bad)}" if bad else "")
+        bad = sorted(a["name"] for a in agents if a.get("status") != "active" and a["name"] not in optional)
+        off = sorted(a["name"] for a in agents if a.get("status") != "active" and a["name"] in optional)
+        return not bad, f"{len(agents) - len(bad) - len(off)}/{len(agents)} active" + (f", down: {', '.join(bad)}" if bad else "") + (f", off (optional): {', '.join(off)}" if off else "")
     except Exception as exc:  # noqa: BLE001
         return False, f"API {type(exc).__name__}"
 
@@ -119,7 +120,7 @@ def main():
         results[f"dns:{name}"] = check_dns(server, qname)
     if cfg.get("wazuh_api"):
         w = cfg["wazuh_api"]
-        results["wazuh:agents"] = check_wazuh_agents(w["url"], w["user"], w["password"], w.get("verify", cfg.get("verify_tls", True)))
+        results["wazuh:agents"] = check_wazuh_agents(w["url"], w["user"], w["password"], w.get("verify", cfg.get("verify_tls", True)), w.get("optional_agents", []))
 
     if cfg.get('pve_backup'):
         results['pve:backups'] = check_pve_backups(cfg)
