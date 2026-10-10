@@ -1,0 +1,117 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1300 690" width="1300" height="690" font-family="ui-sans-serif, system-ui, -apple-system, Segoe UI, Helvetica, Arial, sans-serif" role="img" aria-label="Data flow of the homelab SOC: six sensor types feed a Wazuh manager over the agent channel, Velociraptor clients report to their own server whose datastore is read by a local Wazuh agent, and alerts of level 7 and above pass through an enrichment and LLM triage chain into DFIR-IRIS; Grafana reads the alert index and a watchdog Pi checks all components.">
+<rect width="1300" height="690" fill="#0d1117"/>
+<defs><marker id="arr" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#6e7681"/></marker></defs>
+<text x="20" y="40" font-size="11" letter-spacing="1.5" fill="#8b949e">SENSORS</text>
+<text x="430" y="40" font-size="11" letter-spacing="1.5" fill="#8b949e">EDR HOP</text>
+<text x="660" y="40" font-size="11" letter-spacing="1.5" fill="#8b949e">SIEM</text>
+<text x="960" y="40" font-size="11" letter-spacing="1.5" fill="#8b949e">RESPONSE / VIEW</text>
+<rect x="20" y="60" width="290" height="64" rx="6" fill="#161b22" stroke="#6e7681" stroke-width="1.2"/>
+<text x="32" y="78" font-size="13" font-weight="600" fill="#e6edf3">Pi-hole + Unbound  ·  Pi 4</text>
+<text x="32" y="93" font-size="11.5" fill="#8b949e">DNS query log, SERVFAIL, analytics:</text>
+<text x="32" y="108" font-size="11.5" fill="#8b949e">beaconing · DGA · tunneling · NRD · hammering</text>
+<rect x="20" y="136" width="290" height="64" rx="6" fill="#161b22" stroke="#6e7681" stroke-width="1.2"/>
+<text x="32" y="154" font-size="13" font-weight="600" fill="#e6edf3">Network sensor  ·  Pi 5</text>
+<text x="32" y="169" font-size="11.5" fill="#8b949e">Suricata on switch mirror port (ET Open + local)</text>
+<text x="32" y="184" font-size="11.5" fill="#8b949e">Kismet WLAN (2.4 / 5 / 6 GHz, two radios)</text>
+<rect x="20" y="212" width="290" height="64" rx="6" fill="#161b22" stroke="#6e7681" stroke-width="1.2"/>
+<text x="32" y="230" font-size="13" font-weight="600" fill="#e6edf3">OpenCanary honeypot  ·  LXC</text>
+<text x="32" y="245" font-size="11.5" fill="#8b949e">SSH / HTTP / SMB decoys</text>
+<text x="32" y="260" font-size="11.5" fill="#8b949e">credential attempts, brute force, port touches</text>
+<rect x="20" y="288" width="290" height="64" rx="6" fill="#161b22" stroke="#6e7681" stroke-width="1.2"/>
+<text x="32" y="306" font-size="13" font-weight="600" fill="#e6edf3">Fritzbox monitor</text>
+<text x="32" y="321" font-size="11.5" fill="#8b949e">WAN / DHCP / WLAN events via TR-064</text>
+<text x="32" y="336" font-size="11.5" fill="#8b949e">dedup + counter suffix (Befund 17)</text>
+<rect x="20" y="364" width="290" height="64" rx="6" fill="#161b22" stroke="#6e7681" stroke-width="1.2"/>
+<text x="32" y="382" font-size="13" font-weight="600" fill="#e6edf3">9 Linux hosts</text>
+<text x="32" y="397" font-size="11.5" fill="#8b949e">auditd execve (firewall tools), FIM, journald,</text>
+<text x="32" y="412" font-size="11.5" fill="#8b949e">incl. redcanary VM = Atomic Red Team target</text>
+<rect x="20" y="440" width="290" height="64" rx="6" fill="#0b2b47" stroke="#58a6ff" stroke-width="1.2"/>
+<text x="32" y="458" font-size="13" font-weight="600" fill="#e6edf3">Velociraptor clients  ·  9 hosts</text>
+<text x="32" y="473" font-size="11.5" fill="#8b949e">Homelab.Events.Baseline (ports, keys, cron)</text>
+<text x="32" y="488" font-size="11.5" fill="#8b949e">Homelab.Events.FirewallState (nft chains)</text>
+<rect x="660" y="60" width="220" height="444" rx="8" fill="#0c2d6b" stroke="#58a6ff" stroke-width="1.6"/>
+<text x="676" y="86" font-size="15" font-weight="600" fill="#e6edf3">Wazuh Manager 4.14</text>
+<text x="676" y="112" font-size="11.5" fill="#8b949e">single-node VM, 15 agents</text>
+<text x="676" y="129" font-size="11.5" fill="#e6edf3"></text>
+<text x="676" y="146" font-size="11.5" fill="#8b949e">custom decoders + 100 rules</text>
+<text x="676" y="163" font-size="11.5" fill="#8b949e">0100 Pi-hole · 0101 Unbound</text>
+<text x="676" y="180" font-size="11.5" fill="#8b949e">0102 analytics · 0103 hw metrics</text>
+<text x="676" y="197" font-size="11.5" fill="#8b949e">0105 honeypot · 0106 Fritzbox</text>
+<text x="676" y="214" font-size="11.5" fill="#8b949e">0107 Kismet · 0108 Velociraptor</text>
+<text x="676" y="231" font-size="11.5" fill="#8b949e">0900 Docker · 0910 Suricata</text>
+<text x="676" y="248" font-size="11.5" fill="#8b949e">0920 auditd fw · 0930 AppArmor</text>
+<text x="676" y="265" font-size="11.5" fill="#e6edf3"></text>
+<text x="676" y="282" font-size="11.5" fill="#e6edf3">level ≥ 7 of the sensor groups</text>
+<text x="676" y="299" font-size="11.5" fill="#e6edf3">→ integration custom-iris</text>
+<text x="676" y="316" font-size="11.5" fill="#e6edf3"></text>
+<text x="676" y="333" font-size="11.5" fill="#8b949e">alerts.json → wazuh-indexer</text>
+<text x="676" y="350" font-size="11.5" fill="#8b949e">(OpenSearch)</text>
+<rect x="430" y="522" width="190" height="104" rx="6" fill="#0b2b47" stroke="#58a6ff" stroke-width="1.2"/>
+<text x="442" y="540" font-size="13" font-weight="600" fill="#e6edf3">Velociraptor server  ·  LXC</text>
+<text x="442" y="555" font-size="11.5" fill="#8b949e">CLIENT_EVENT artifacts, 60 s</text>
+<text x="442" y="570" font-size="11.5" fill="#8b949e">datastore: monitoring/*.json</text>
+<text x="442" y="585" font-size="11.5" fill="#8b949e">read by the local Wazuh agent</text>
+<text x="442" y="600" font-size="11.5" fill="#8b949e">(one localfile per source)</text>
+<line x1="310" y1="92.0" x2="660" y2="100" stroke="#6e7681" stroke-width="1.4" marker-end="url(#arr)"/>
+<text x="485.0" y="89.0" font-size="10.5" fill="#8b949e" text-anchor="middle">agent · query log + analytics json</text>
+<line x1="310" y1="168.0" x2="660" y2="170" stroke="#6e7681" stroke-width="1.4" marker-end="url(#arr)"/>
+<text x="485.0" y="162.0" font-size="10.5" fill="#8b949e" text-anchor="middle">agent · eve.json + kismet json</text>
+<line x1="310" y1="244.0" x2="660" y2="240" stroke="#6e7681" stroke-width="1.4" marker-end="url(#arr)"/>
+<text x="485.0" y="235.0" font-size="10.5" fill="#8b949e" text-anchor="middle">agent · opencanary log</text>
+<line x1="310" y1="320.0" x2="660" y2="310" stroke="#6e7681" stroke-width="1.4" marker-end="url(#arr)"/>
+<text x="485.0" y="308.0" font-size="10.5" fill="#8b949e" text-anchor="middle">agent · monitor json</text>
+<line x1="310" y1="396.0" x2="660" y2="380" stroke="#6e7681" stroke-width="1.4" marker-end="url(#arr)"/>
+<text x="485.0" y="381.0" font-size="10.5" fill="#8b949e" text-anchor="middle">agent · audit.log, syscheck, journald</text>
+<line x1="310" y1="472.0" x2="430" y2="574.0" stroke="#58a6ff" stroke-width="1.4" marker-end="url(#arr)"/>
+<text x="370.0" y="515.0" font-size="10.5" fill="#8b949e" text-anchor="middle">velociraptor client</text>
+<line x1="620" y1="552" x2="710" y2="504" stroke="#58a6ff" stroke-width="1.4" marker-end="url(#arr)"/>
+<text x="628" y="574" font-size="10.5" fill="#8b949e" text-anchor="start">agent · json localfile</text>
+<rect x="960" y="60" width="320" height="64" rx="6" fill="#161b22" stroke="#6e7681" stroke-width="1.2"/>
+<text x="972" y="78" font-size="13" font-weight="600" fill="#e6edf3">DFIR-IRIS  ·  case management</text>
+<text x="972" y="93" font-size="11.5" fill="#8b949e">one case per alert, tags dm-* / llm-*</text>
+<text x="972" y="108" font-size="11.5" fill="#8b949e">enrichment and triage text attached</text>
+<rect x="960" y="150" width="320" height="230" rx="6" fill="#3b2e00" stroke="#d29922" stroke-width="1.2"/>
+<text x="972" y="168" font-size="13" font-weight="600" fill="#e6edf3">custom-iris v2.9  ·  enrichment + triage</text>
+<circle cx="982" cy="188" r="9" fill="#0d1117" stroke="#d29922" stroke-width="1.2"/>
+<text x="982" y="192" font-size="10.5" font-weight="600" text-anchor="middle" fill="#e6edf3">1</text>
+<text x="1000" y="192" font-size="12" font-weight="600" fill="#e6edf3">RDAP</text>
+<text x="1100" y="192" font-size="11" fill="#8b949e">domain age</text>
+<circle cx="982" cy="218" r="9" fill="#0d1117" stroke="#d29922" stroke-width="1.2"/>
+<text x="982" y="222" font-size="10.5" font-weight="600" text-anchor="middle" fill="#e6edf3">2</text>
+<text x="1000" y="222" font-size="12" font-weight="600" fill="#e6edf3">VirusTotal</text>
+<text x="1100" y="222" font-size="11" fill="#8b949e">quota-limited, cached</text>
+<circle cx="982" cy="248" r="9" fill="#0d1117" stroke="#d29922" stroke-width="1.2"/>
+<text x="982" y="252" font-size="10.5" font-weight="600" text-anchor="middle" fill="#e6edf3">3</text>
+<text x="1000" y="252" font-size="12" font-weight="600" fill="#e6edf3">MISP</text>
+<text x="1100" y="252" font-size="11" fill="#8b949e">restSearch + feed cache, decay</text>
+<circle cx="982" cy="278" r="9" fill="#0d1117" stroke="#d29922" stroke-width="1.2"/>
+<text x="982" y="282" font-size="10.5" font-weight="600" text-anchor="middle" fill="#e6edf3">4</text>
+<text x="1000" y="282" font-size="12" font-weight="600" fill="#e6edf3">nimble</text>
+<text x="1100" y="282" font-size="11" fill="#8b949e">decision model, gate 0.5</text>
+<circle cx="982" cy="308" r="9" fill="#0d1117" stroke="#d29922" stroke-width="1.2"/>
+<text x="982" y="312" font-size="10.5" font-weight="600" text-anchor="middle" fill="#e6edf3">5</text>
+<text x="1000" y="312" font-size="12" font-weight="600" fill="#e6edf3">Gemma 4 12B</text>
+<text x="1100" y="312" font-size="11" fill="#8b949e">triage if needs_human ≥ 0.5</text>
+<circle cx="982" cy="338" r="9" fill="#0d1117" stroke="#d29922" stroke-width="1.2"/>
+<text x="982" y="342" font-size="10.5" font-weight="600" text-anchor="middle" fill="#e6edf3">6</text>
+<text x="1000" y="342" font-size="12" font-weight="600" fill="#e6edf3">gpt-oss 20B</text>
+<text x="1100" y="342" font-size="11" fill="#8b949e">second opinion → llm-disagree</text>
+<text x="972" y="370" font-size="10.5" fill="#8b949e">Ollama on a separate PC, port 11434 only for the manager</text>
+<rect x="960" y="410" width="320" height="64" rx="6" fill="#161b22" stroke="#6e7681" stroke-width="1.2"/>
+<text x="972" y="428" font-size="13" font-weight="600" fill="#e6edf3">Grafana + Prometheus  ·  LXC</text>
+<text x="972" y="443" font-size="11.5" fill="#8b949e">Wazuh Alerts dashboard (OpenSearch, read-only)</text>
+<text x="972" y="458" font-size="11.5" fill="#8b949e">node / pihole / fritzbox exporters on 13 hosts</text>
+<rect x="960" y="500" width="320" height="64" rx="6" fill="#161b22" stroke="#6e7681" stroke-width="1.2"/>
+<text x="972" y="518" font-size="13" font-weight="600" fill="#e6edf3">Watchdog  ·  Pi 3</text>
+<text x="972" y="533" font-size="11.5" fill="#8b949e">14 checks: services, backups, NIC, alert volume</text>
+<text x="972" y="548" font-size="11.5" fill="#8b949e">ntfy push on state change, outside the stack</text>
+<line x1="880" y1="290" x2="960" y2="210" stroke="#d29922" stroke-width="1.4" marker-end="url(#arr)"/>
+<text x="886" y="306" font-size="10.5" fill="#8b949e" text-anchor="start">level ≥ 7</text>
+<line x1="1110" y1="150" x2="1110" y2="124" stroke="#d29922" stroke-width="1.4" marker-end="url(#arr)"/>
+<text x="1118" y="140" font-size="10.5" fill="#8b949e" text-anchor="start">case + tags</text>
+<line x1="880" y1="460" x2="960" y2="442" stroke="#6e7681" stroke-width="1.4" marker-end="url(#arr)"/>
+<text x="884" y="476" font-size="10.5" fill="#8b949e" text-anchor="start">OpenSearch</text>
+<line x1="960" y1="532" x2="880" y2="492" stroke="#6e7681" stroke-width="1.4" stroke-dasharray="5 4" marker-end="url(#arr)"/>
+<text x="952" y="548" font-size="10.5" fill="#8b949e" text-anchor="end">HTTP / TCP checks</text>
+<text x="20" y="672" font-size="10.5" fill="#8b949e">Proxmox PVE 9 on a Lenovo M90q (i5-10500, 32 GB) hosts the VMs and LXCs; Pis, the LLM PC and the switch mirror port are separate hardware. All hosts are in Wazuh, Velociraptor and Prometheus.</text>
+</svg>

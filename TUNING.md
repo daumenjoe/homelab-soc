@@ -215,3 +215,307 @@ GPU/Lüfter liefen abends laut, obwohl keine Triage lief (0 Läufe/10 min). Ursa
 ### Befund 30 (Hardware): e1000e/i219 Hardware Unit Hang unter Last (2026-10-05)
 
 Während eines Portscan-Tests (redcanary → Honeypot) fiel der komplette Proxmox-Host vom Netz: lokale Konsole lebte, aber kein Ping. `dmesg`: 290× „e1000e 0000:00:1f.6 nic0: Detected Hardware Unit Hang" ab Scan-Zeitpunkt, TX-Queue blockiert (`TDT <0>`, `next_to_watch.status <0>`), Link up. Das ist der bekannte TSO/Offload-Defekt der Intel-i219-NIC im M90q, nicht der Scan selbst – der war nur die Lastspitze, die ihn auslöste. `modprobe -r e1000e` holte das Netz nicht zurück, erst Reboot. **Fix:** Offloads abschalten, dauerhaft als `post-up /sbin/ethtool -K nic0 tso off gso off gro off tx off rx off sg off` plus `--set-eee nic0 eee off` am vmbr0 (EEE war enabled/inactive, der zweite bekannte i219-Auslöser). **Lehre:** Ein Angriffstest kann latente Hardware-Bugs triggern – der Befund ist echt und wichtig (der Host ist Single Point of Failure für fast alle Sensoren), auch wenn er nichts mit der Detection-Logik zu tun hat.
+
+### Befund 31: OpenCanary überlebt Reboot nicht automatisch (2026-10-05)
+
+Nach dem Proxmox-Reboot (NIC-Hang, Befund 30) war der Honeypot stumm:
+`opencanary` inactive, nur der echte SSH-Port offen. Ein T1046-Scan sah
+deshalb zunächst nur eine Berührung. Nach `systemctl enable --now opencanary`
+lauschen wieder alle Köder (21/23/80/5900/6379), Scan liefert erwartungsgemäß
+mehrere 110132.
+
+**Prüfen/Fix:** `systemctl is-enabled opencanary` muss `enabled` sein.
+
+**Lehre:** Jeder Sensor braucht einen Reboot-Test; ein Dienst, der nach
+Neustart nicht hochkommt, ist eine stille Lücke – hier erst durch den
+Angriffstest aufgefallen. (T1046: Honeypot-Scan wird über Berührungen erkannt,
+kein dedizierter Portscan-Alert mangels iptables-Logging im unprivilegierten
+LXC.)
+
+---
+
+### Befund 32: Velociraptor-Events erreichten das SIEM nicht – Brücke verloren (2026-10-06)
+
+**Symptom:** Beim Volumen-Review nach dem Sensor-Umbau fiel auf, dass die
+Velociraptor-Regeln 110180–110183 im aktuellen Alert-Log nicht vorkamen
+(nur alerts.json geprüft, nicht die rotierten Tage – Treffer vom 04.10. wären
+dort gewesen) — nicht mit
+Treffer 0, sondern komplett abwesend. Die Erkennungen (neue Ports/Keys/Cron)
+waren nur in der Velociraptor-GUI sichtbar.
+
+**Diagnose (Quelle → Senke):**
+- Regel-IDs 110180–110183: 0 Alerts, je.
+- String-Suche "velociraptor" fand 54 Treffer → Fehlspur, waren PAM-Logins des
+  velociraptor-Dienstusers (5501/5502). Lehre: auf Regel-IDs filtern, nicht auf
+  frei assoziierte Strings.
+- Kein `<localfile>` des Managers verweist auf Velociraptor. Es gab keinen Kanal.
+- Datastore enthielt die Ergebnisse sehr wohl (inkl. Cron-Testzeile aus Runde 1,
+  04.10. 14:07). Sensor arbeitete, Ergebnisse wurden nie abgeholt.
+
+**Zweite Ursache, am 06.10. angenommen, am 10.10. zurückgenommen:** Basisregel
+110180 stand auf `level="0"`; ich hatte das als "Regel wird verworfen, if_sid-
+Kinder greifen nie" erklärt. Das ist falsch: 80700 (auditd, "Messages grouped")
+ist selbst Level 0 und 80701ff feuern darunter (Befund 33c, live gesehen).
+Level 0 heißt "nicht loggen", nicht "nicht matchen". Dass es nach der Änderung
+auf Level 2 lief, lag am gleichzeitigen Manager-Neustart mit dem neuen
+localfile. Level 2 bleibt (schadet nicht), die Ursache war allein die Brücke.
+
+**Einordnung gegen Befund 25:** Dort "verschluckte" der Agent am 04.10. einen
+SSH-Key-Fund wegen Datastore-ACL – es gab also am 04.10. einen localfile auf
+den Datastore. Am 06.10. war keiner mehr da. Die Brücke wurde nicht "nie
+gebaut", sondern **gebaut und verloren**, wahrscheinlich durch einen
+agent.conf-Sync, der den lokalen Block auf .228 überschrieb (das Muster aus
+Befund 34). Das ist das gefährlichere Bild: eine Konfiguration, die still
+verschwindet. Deshalb lebt der Block seit 08.10. in der Gruppen-agent.conf.
+
+**Fix:**
+1. `<localfile>` (json) auf dem Velociraptor-Host (.228), liest
+   `/var/lib/velociraptor/clients/*/monitoring/Homelab.Events.Baseline/*/*.json`,
+   geht über den bestehenden Agent-Kanal zum Manager. Wichtig: Resultat-Baum
+   `monitoring/` (nicht `monitoring_logs/` = nur Betriebsmeldungen).
+2. 110180 level 0 → 2.
+
+**Verifikation:** Test-Port 8111 auf iris → Diff → Datastore → Agent → Manager
+→ Alert 110181 (L8) im alerts.json. Erster End-to-End-Durchlauf.
+
+**Nebenbefund:** Artefakt-Beschreibung sagt "alle 5 Min", Period ist 60s
+(Doku-Fix offen). Nur 7 von 9 Clients liefern Baseline-Listeners-Daten (welche
+zwei fehlen, prüfen).
+
+---
+
+---
+
+### Befund 33: Regeldatei-Ladereihenfolge bricht if_sid auf Standardregeln (2026-10-06)
+
+**Symptom:** Neue auditd-Regel 110190 (Firewall-Manipulation, T1562.004) griff
+live nicht, obwohl alle Felder korrekt dekodiert ankamen (per archives.json mit
+testweise aktivem `logall_json` bewiesen: `audit.key=fw_tamper`, `exe`, `auid`,
+`execve.a1` — alles da). logtest warnte "Signature ID 80700 not found in if_sid".
+
+**Ursache:** Die Custom-Regeldatei hatte Präfix `0110` und lud damit *vor* der
+Standard-auditd-Regeldatei `0365-auditd_rules.xml`. Die Parent-Regel 80700
+("Audit: Messages grouped", level 0, in 0365) war zum Parse-Zeitpunkt von 0110
+noch unbekannt → `if_sid 80700` ins Leere → Regel ignoriert.
+
+**Fehlspuren ausgeschlossen:**
+- Transport: Event kam vollständig dekodiert an (nicht das Problem).
+- `decoded_as auditd` statt if_sid: löst die Warnung, aber verliert live gegen
+  die grouping-Regel 80700 auf gleicher Ebene → kein Alert.
+
+**Fix:** Regeldatei umbenannt `0110-` → `0910-defense_evasion_rules.xml`
+(lädt nach 0365, 80700 ist dann bekannt).
+
+**Verifikation (live, nicht nur logtest):** `nft list ruleset` → 110190 L7;
+`nft flush ruleset` → 110191 L12 mit `a1=flush`. Zweistufige Erkennung bestätigt.
+
+**Lehren:**
+- Regeldatei-Nummerierung ist nicht nur Kosmetik — sie bestimmt, welche Parents
+  via if_sid sichtbar sind. Custom-Regeln, die auf Standard-Regeln ankern,
+  brauchen eine Nummer > der Standard-Datei.
+- logtest ≠ Live-Daemon. logtest lädt in anderer Reihenfolge; "not found"-
+  Warnungen am Live-Verhalten gegenprüfen.
+- Level-0-Regeln erscheinen nie in alerts.json (nur als Parent nutzbar). Für
+  Transport-Tests `logall_json` nutzen (danach WIEDER AUS — Platte).
+
+#### 33a: Stillregel 110189 für Dienst-Aufrufe (2026-10-08)
+
+**Symptom:** 12 x 110190 (L7) in der ersten Nacht, alle `auid=4294967295`
+(unset, kein Login), alle nur `nft list`, 10 davon von derselben ppid. Ein
+Dienst (Velociraptor-Client / nftables-Poll) liest periodisch den Ruleset.
+
+**Fix:** Regel 110189 (level 0) **vor** 110190, haengt direkt an 80700:
+`auid=^4294967295$` UND `execve.a1=^list$` -> still. Alles andere laeuft
+weiter: interaktives `list` (hat auid) -> 110190 L7; `flush`/`delete` von wem
+auch immer, auch ohne Login -> 110191 L12.
+
+**Verifikation:** `systemd-run nft list ruleset` (auid unset) -> kein Alert.
+Interaktives `sudo nft list ruleset` (auid 1000) -> 110190 L7. Beide live.
+
+**Lehre:** Wazuh nimmt das erste passende Kind einer Parent-Regel in
+Dateireihenfolge. Eine Stillregel muss *vor* der Basisregel stehen und an
+derselben Parent haengen, nicht an der Basisregel selbst.
+
+---
+
+#### 33b: Zweiter Fall Ladereihenfolge – AppArmor/Discord (2026-10-09)
+
+Stillregel 110199 fuer 52002 (Discord-Snap, ~150 DENIED/2 Tage durch ptrace
+und /proc/PID/cmdline, Spielaktivitaets-Erkennung, von der Sandbox korrekt
+geblockt) griff in 0109-local_overrides.xml nicht: 0109 laedt vor
+0315-apparmor_rules.xml, 52002 ist beim Parsen unbekannt. Verschoben nach
+0930-apparmor_overrides.xml.
+
+**Regel daraus:** 0109 ist fuer Overrides EIGENER Regeln (110xxx, laden in
+0100–0108). Overrides auf Wazuh-STANDARDregeln (5xxx, 52xxx, 80xxx) brauchen
+eine 09xx-Datei. Standard-AppArmor-Decoder extrahiert nur status/extra_data,
+daher Regex gegen die Rohzeile; Feldreihenfolge dort ist nicht fix
+(operation= steht bei ptrace vor profile=), daher zwei Lookaheads.
+
+---
+
+#### 33c: Weg B – Homelab.Events.FirewallState, Zustandsüberwachung (2026-10-09)
+
+**Ziel:** auditd (Weg A, 110190ff) sieht den *Aufruf* von nft/iptables. Es
+sieht nicht: Netlink direkt (pyroute2, google/nftables), ein kopiertes Binary
+unter anderem Namen, und es läuft nur, wo auditd installiert ist (redcanary).
+Weg B überwacht den *Zustand* auf allen 9 Velociraptor-Clients.
+
+**Bestandsaufnahme vorab:** Gäste sind nicht nackt. iris/misp ~100 Zeilen
+(Docker via iptables-nft), llm/sensor ~320 (ufw), grafana/relay/wazuh leer.
+Alle über die iptables-Kompatibilitätsschicht ("table ip filter is managed by
+iptables-nft"). Folge: Chain-Namen sind stabile Signaturen (ufw-*, DOCKER-*).
+
+**Maß:** eine Zeile je table/chain, Key = "table/chain", diff() meldet added
+UND removed. Nicht Regel-Hash: Docker ändert bei jedem Container-Start Regeln
+in bestehenden Chains (Rauschen), aber keine Chains. ufw disable / nft flush /
+iptables -X entfernen Chains (Signal). Regelzahl je Chain als Zusatzfeld.
+
+**VQL, an der Engine verifiziert (llm, Sollwerte aus Python):**
+- `nft -j list ruleset` liefert JSON, kein Text-Parsing.
+- foreach(row=<array of dicts>) legt die Dict-Schlüssel direkt in den Scope,
+  kein _value. Jedes Objekt hat genau einen Schlüssel; direkter Zugriff auf
+  fehlende Schlüssel = Fehler je Zeile. Lösung: get(field="chain").
+- Aliase chain/rule verdecken Plugin-Namen, der Artefakt-Linter lehnt sie ab
+  (symbol_mask_warn). ChainObj/RuleObj.
+- Regelzahl je Chain: parametrisierte LET-Funktion und korrelierte Subquery
+  sahen den äußeren Key NICHT (Rules=0 überall). Funktioniert: GROUP BY in
+  ein Dict (to_dict), Lookup per get(item=, field=, default=0).
+- LETs auf Source-Ebene müssen "=" sein; "<=" würde beim Artefakt-Start
+  einfrieren. Preis: 3x execve je Tick. Kleinkram: LETs in die innere Query.
+
+**Wazuh:** 110184 (L10, jede Chain-Änderung, pcre2 für ^(added|removed)$ —
+OSRegex kennt keine Gruppen, Befund: CRITICAL beim Laden), 110186 (L10, nur
+removed), 110185 (L12, frequency 5/120s auf 110186, same_field Host).
+Erste Fassung hatte <field Diff=removed> IN der Frequenzregel: ein <field>
+in einer if_matched_sid-Regel prüft nur das AKTUELLE Event, nicht die
+gezählten; das letzte Event im Batch war ein "added" → nie gezündet.
+Zwischenregel 110186 löst das.
+
+**Verifikation (ufw disable auf llm, 130 s, ufw enable):** 22 x 110186
+removed, 27 x 110184 added, 1 x 110185 L12 "firewall torn down on llm".
+Erster Lauf mit 75 s: beide Übergänge im selben Tick, _ts identisch; 130 s
+= zwei Ticks, Übergänge getrennt. Für Tests immer > 2 x Period.
+
+**Betrieb:** vierter localfile-Block in servers/agent.conf
+(.../Homelab.Events.FirewallState/Chains/*.json). Ein neuer localfile in
+einer Gruppen-agent.conf wird gesynct, aber erst nach **Agent-Neustart**
+aktiv ("Analyzing file" im Log). Vor einem Test prüfen (Nachtrag Befund 34).
+
+**T1562.004 damit doppelt abgedeckt:** 110191 (Aufruf, auid, Argument) +
+110185 (Zustand, alle Hosts). Feuert nur B ohne A → auditd umgangen.
+
+---
+
+### Befund 34: Doppeltes Wildcard im Velociraptor-localfile – Dateien doppelt registriert (2026-10-08)
+
+**Symptom:** Tag 2 nach dem Brückenbau (Befund 32) kam ein echtes Baseline-Event
+(llm öffnet Port 11434 nach Ollama-Neustart) nicht als Alert an, obwohl die
+Datastore-Datei existierte und der Agent sie als "New file that matches the
+pattern" erkannte. Direkt danach im Agent-Log: `Log file ... is duplicated`,
+32 Warnungen pro Agent-Neustart.
+
+**Ursache:** Das Muster `clients/*/monitoring/Homelab.Events.Baseline/*/*.json`
+hat zwei Wildcard-Verzeichnisse. Wazuh expandiert das beim Start einmal und
+registriert dieselbe Datei danach ein zweites Mal ueber das Pattern. Die
+zweite Registrierung wird als Duplikat verworfen; beim Tagesrollover (neue
+`<datum>.json`) kann die erste Zuordnung verfallen und die zweite nie lesen.
+Das Event von 08:41 Uhr ging so verloren.
+
+**Zweite Ursache (Betrieb):** Der localfile-Block lag lokal in der ossec.conf
+des Agents. In diesem Setup ist die Gruppen-agent.conf die Quelle der Wahrheit;
+lokale Aenderungen werden beim naechsten Sync ueberschrieben.
+
+**Fix:**
+1. Ein localfile-Block **pro Quelle** (Listeners, AuthorizedKeys, Cron), je nur
+   ein Wildcard-Verzeichnis plus `*.json`. Neue Quelle = neuer Block, explizit.
+2. Blocks in die Agent-Gruppe `velociraptor` (`<agent_config name="velociraptor">`)
+   statt lokal. Lokaler Block entfernt. Host haengt in `servers` + `velociraptor`.
+
+**Verifikation:** Nach Restart 0 duplicated-Warnungen (vorher 32). Frischer
+Testport 8112 auf llm -> 110181 im alerts.json. Port geschlossen.
+
+**Lehre:** Wazuh liest eine neu registrierte Datei ab Dateiende. Ein Event, das
+vor der Registrierung geschrieben wurde, wird nicht nachgelesen. Bruecken-Tests
+brauchen immer einen *frischen* Diff, nie einen schon vorhandenen.
+
+---
+
+---
+
+### Befund 35: Ein Smart-TV erzeugt 70 % des SIEM-Tagesvolumens (2026-10-09)
+
+**Symptom:** Tageszahl drei Tage in Folge bei 4000–4800 statt ~1500. Top-8 nach
+Regel: 3323 von 4794 Alerts sind Regel 110010 (Pi-hole gravity block), die
+Domains alle Telemetrie/Werbung (androidtvchannels, *.cws.conviva.com mit
+40-stelligem Hex-Praefix als Session-ID, gs-loc.apple.com, braze, instagram).
+Quelle: der eine Smart-TV im Haus (Philips 50PUS7354, Android TV, .29).
+
+**Histogramm nach Stunde:** Blocks rund um die Uhr, nachts 1–4/min, tagsueber
+bis 13/min, Spitzen 12 und 15 Uhr. Der Fernseher laeuft ~10 Min/Tag, ist aber
+nie aus: Netzwerk-Standby ("Mit Chromecast einschalten" + WoWLAN) haelt den
+Android-Stack wach, die App-SDKs wiederholen geblockte Anfragen ohne Backoff.
+
+**Recherche Blocking-Mode:** Pi-hole-Doku: NULL (0.0.0.0, aktiv) ist der Modus
+mit den wenigsten Retries; NXDOMAIN fuehrt laut Doku zu *mehr* Aufloesungs-
+versuchen, IP-Modus zu HTTPS-Timeouts. Kein Hebel ueber den Modus.
+
+**Fix, Regel-Seite:**
+- 110010 Level 3 -> 1. Bleibt dekodiert und im Index (Grafana-Drilldown "Top
+  geblockte Domains" funktioniert weiter), faellt aus Tageszahl und Dashboard.
+- Neue 110061 (L5, frequency 30, timeframe 600, same_field dns.domain): eine
+  geblockte Domain 30+ mal in 10 Min = Retry-Loop als EIN Event. Erwartung
+  2–5/Tag statt 3300 Einzelzeilen.
+
+**Fix, Geraete-Seite:** Einstellungen -> Kabellos und Netzwerke -> Kabel oder
+WLAN -> "Mit Chromecast einschalten" AUS, "Mit WLAN einschalten (WoWLAN)" AUS.
+Nebenwirkung: Casten weckt den TV nicht mehr. Kontrolle am Folgetag per
+Stunden-Histogramm (Nachtbalken 0–6 Uhr muessen verschwinden).
+
+**Einschraenkung:** dnsmasq-Block-Zeilen (`gravity blocked <domain> is 0.0.0.0`)
+tragen keine Client-IP; die steht nur in der getrennten query-Zeile. Deshalb
+Frequenz nur nach Domain. Client-Zuordnung ist Aufgabe von pihole-analytics
+(FTL-DB hat Client + Domain in einer Zeile). Ausbau: Pruefung "Client x
+geblockte Domain, Top-N/Tag".
+
+**Lehre:** Das SIEM hat hier kein Sicherheitsereignis gefunden, sondern ein
+Geraeteverhalten sichtbar gemacht, das ohne die Zahlen unbemerkt geblieben
+waere. Ein einzelnes Consumer-Geraet kann das Dashboard dominieren; die Tages-
+zahl ist nur dann eine Sicherheitskennzahl, wenn Level-1-Rauschen draussen ist.
+
+---
+
+**Korrektur (2026-10-10):** 110010 auf Level 1 liegt UNTER `log_alert_level`
+(3). Einzelne Blocks landen damit weder im alerts.json noch im Indexer; der
+Grafana-Drilldown "Top geblockte Domains" funktioniert NICHT mehr. Bewusst so
+gelassen (Option C): ein einzelner geblockter Query ist keine SIEM-Information,
+die Statistik fuehrt Pi-hole/FTL selbst. Im SIEM bleiben die Muster: 110061
+(Retry-Loop je Domain) und 110086 (Hammering mit Client aus der FTL-DB).
+Histogramme ab jetzt direkt auf der FTL-DB, nicht auf alerts.json.
+
+**Geraeteseite bestaetigt (2026-10-10):** Nach Abschalten von "Mit Chromecast
+einschalten" und WoWLAN keine Blocks mehr zwischen 0 und 6 Uhr. Der TV ist
+aus, wenn er aus ist. Tagsueber bei Nutzung 2–4 x 110061 je Sitzung, das ist
+das neue Normalbild.
+
+---
+
+### Korrekturen (2026-10-09)
+
+- **Baseline-Abdeckung ist 9/9, nicht 7/9.** Die Zaehlung vom 06.10. zaehlte
+  Hosts mit einem Resultat-Baum (= mindestens eine gemeldete Aenderung), nicht
+  Hosts mit aktivem Artefakt. pi-hole und watchdog fuehren die Baseline
+  (monitoring_logs von heute, fehlerfrei), hatten nur noch nie eine Aenderung.
+- **Velociraptor-Clients: 12 -> 9.** Drei Leichen geloescht (redcanary x2 aus
+  Rollbacks vor dem Enrollment-Zeitpunkt, alter 24.04-Sensor vor dem Umbau).
+  Merker: Rollback auf einen Snapshot VOR der Client-Enrollment-Zeit erzeugt
+  beim Boot einen neuen Client mit neuer ID.
+- Baseline-Artefakt: Beschreibung "alle 5 Min" -> "alle 60 Sekunden
+  (Parameter Period)", per GUI. Hinweis an mich selbst: `grep -rl` im
+  Datastore trifft auch Server.Audit.Logs, die die Definition zitieren;
+  nie `sed -i` auf ein Suchergebnis ohne vorher zu schauen, was es ist.
+
+### Kleinkram (neu, 2026-10-08)
+- 292 x AppArmor DENIED auf dem Laptop (ChS) an einem Tag. Profil pruefen:
+  `journalctl -k | grep apparmor=\"DENIED\" | grep -oE 'profile=\"[^\"]*\"' | sort | uniq -c`
+- Regeldatei-Uebersicht: neue Zeile `0920-defense_evasion_rules.xml | 110189-110192 | auditd`

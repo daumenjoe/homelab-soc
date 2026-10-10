@@ -42,10 +42,20 @@ Methodisch von der Datenquelle zur Senke, nicht umgekehrt:
    Der Sensor *arbeitete*, nur niemand holte die Ergebnisse ab.
 
 **Befund:** Reine Integrationslücke. Beide Werkzeuge funktionsfähig, die Brücke
-zwischen ihnen nie gebaut. Dazu ein zweiter, unabhängiger Fehler: Die
-Basis-Erkennungsregel stand auf Alarm-Level 0 — in Wazuh bedeutet das, dass die
-Regel verworfen wird und abgeleitete Regeln (via `if_sid`) nie greifen. Selbst
-mit Brücke hätte nichts gefeuert.
+zwischen ihnen fehlte. Und zwar nicht, weil sie nie gebaut worden wäre: Zwei
+Tage zuvor hatte ein Atomic-Test noch einen Datastore-ACL-Fehler aufgedeckt,
+der den Wazuh-Agent beim Lesen der Velociraptor-Ergebnisse aussperrte — es gab
+also einen Lesepfad. Der Konfigurationsblock lebte lokal auf dem Host und wurde
+beim nächsten Sync der Agent-Gruppenkonfiguration stillschweigend überschrieben.
+Eine Konfiguration, die wieder verschwindet, ist das gefährlichere Muster als
+eine, die nie da war.
+
+Ein zweiter Verdacht aus dem ersten Tag hielt der Prüfung nicht stand: Die
+Basis-Erkennungsregel stand auf Alarm-Level 0, und ich hatte angenommen, dass
+Wazuh damit die Regel verwirft und abgeleitete Regeln nie greifen. Das stimmt
+nicht — Level 0 heißt "nicht loggen", nicht "nicht matchen"; Wazuhs eigene
+auditd-Sammelregel 80700 ist Level 0 und ihre Kinder feuern. Die Änderung auf
+Level 2 blieb (schadet nicht), aber die Ursache war allein die Brücke.
 
 ## Behebung
 
@@ -53,7 +63,9 @@ mit Brücke hätte nichts gefeuert.
    Monitoring-Resultat-Baum des Datastores als JSON liest und über den
    bestehenden, verschlüsselten Wazuh-Agent-Kanal zum Manager schickt. Keine
    neue Netzwerkfreigabe nötig.
-2. **Level-Fix:** Basis-Regel von Level 0 auf 2 angehoben.
+2. **Verankerung:** Der Block liegt seitdem in der Agent-Gruppenkonfiguration
+   (ein `localfile` je Quelle), nicht mehr lokal auf dem Host, und ein
+   Abgleichskript prüft Repo gegen Live-Systeme.
 3. **Verifikation:** Auf einem überwachten Host einen Test-Port geöffnet →
    Velociraptor-Diff → Datastore → Agent → Manager → **Alert feuerte** (neuer
    Listening-Port, Level 8). Erstmals lief ein Velociraptor-Event

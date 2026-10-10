@@ -13,10 +13,20 @@ Agent auf dem LXC liest diese Dateien per Wildcard (`agent/servers/agent.conf`, 
 `setfacl` gibt `wazuh` Leserecht inklusive Default-ACL für neue Dateien.
 
 **Eigenes Event-Artefakt `Homelab.Events.Baseline`** (`Homelab.Events.Baseline.yaml`, in der GUI unter
-View Artifacts einspielen, dann unter Client Events für die Gruppe All aktivieren): alle fünf Minuten
+View Artifacts einspielen, dann unter Client Events für die Gruppe All aktivieren): alle 60 Sekunden (Parameter Period)
 `diff()` gegen den letzten Stand für Listening-Ports, `authorized_keys`-Einträge und Cron-Zeilen; nur
 Hinzugefügtes wird gemeldet, jede Zeile trägt den Hostnamen. `Linux.Events.SSHLogin` ist unbrauchbar auf
 Systemen ohne `auth.log` (Ubuntu 24.04+) und ohnehin durch Wazuh abgedeckt.
+
+**Zweites Event-Artefakt `Homelab.Events.FirewallState`** (`Homelab.Events.FirewallState.yaml`, gleicher
+Einspielweg): überwacht den nftables-Ruleset als Menge von Chains, eine Zeile je `table/chain`, aus
+`nft -j list ruleset`. Meldet `added` **und** `removed`, denn das Verschwinden von Chains ist hier das
+Signal (`ufw disable`, `nft flush ruleset`, `iptables -X`). Chain-Menge statt Regel-Hash, weil Docker bei
+jedem Container-Start Regeln innerhalb bestehender Chains ändert, aber keine Chains. Ergänzt die
+auditd-Erkennung (sieht den Aufruf) um den Zustand: greift auch bei Netlink-Direktzugriff oder einem
+umbenannten Binary. Wazuh-Regeln 110184 (jede Änderung, L10), 110186 (nur removed), 110185 (5+ removed
+in 2 min, L12). Verifiziert mit `ufw disable` auf llm. VQL-Fallstricke beim Bau stehen in TUNING.md,
+Befund 33c.
 
 **Wazuh-Regeln** `0108-velociraptor_rules.xml` 110180–110183: neuer SSH-Key → 10, neue Cron-Zeile → 9,
 neuer Listening-Port → 8 (alle nach IRIS, Gruppe `velociraptor`); `Diff=removed` bleibt stumm.
