@@ -6,7 +6,8 @@
 #   scripts/sync-check.sh pull       Live-Stand ins Repo uebernehmen (fragt vorher)
 #
 # Quellen:
-#   wazuh:        /var/ossec/etc/rules/0*.xml, /var/ossec/etc/shared/*/agent.conf
+#   wazuh:        /var/ossec/etc/rules/0*.xml, /var/ossec/etc/shared/*/agent.conf,
+#                 /var/ossec/etc/lists/* (CDB-Quellen, nicht die .cdb)
 #   velociraptor: Artefakt-Definitionen aus ARTIFACTS (unten)
 #   pis:          Einzeldateien aus PI_FILES (unten), Format host:live:repo[:redact]
 #                 "redact" schwaerzt Werte von token/password/secret/key/ntfy_url in JSON,
@@ -32,6 +33,9 @@ PI_FILES=(
 RULES_DIR="$REPO/rules"
 AGENT_DIR="$REPO/agent-configs"
 VELO_DIR="$REPO/velociraptor"
+LISTS_DIR="$REPO/lists"
+# Wazuh-eigene Listen, die nicht ins Repo gehoeren
+LIST_IGNORE=(audit-keys security-eventchannel)
 WORK="$(mktemp -d /tmp/sync-check.XXXXXX)"
 trap 'rm -rf "$WORK"' EXIT
 
@@ -41,7 +45,7 @@ MODE="${1:-check}"
 fetch_live() {
     echo "== hole Live-Stand =="
     # Regeln + Gruppen-Konfigs als Tar (Dateien gehoeren wazuh:640, daher sudo+tar)
-    ssh "$WAZUH_HOST" "sudo tar czf /tmp/sync-live.tgz -C /var/ossec/etc rules shared && sudo chown \$(id -un) /tmp/sync-live.tgz"
+    ssh "$WAZUH_HOST" "sudo tar czf /tmp/sync-live.tgz -C /var/ossec/etc --exclude='*.cdb' rules shared lists && sudo chown \$(id -un) /tmp/sync-live.tgz"
     scp -q "$WAZUH_HOST:/tmp/sync-live.tgz" "$WORK/"
     ssh "$WAZUH_HOST" "rm /tmp/sync-live.tgz"
     tar xzf "$WORK/sync-live.tgz" -C "$WORK"
@@ -76,7 +80,7 @@ with open(p, "w") as f:
 PY
         fi
     done
-    echo "   $(ls "$WORK/live-rules" | wc -l) Regeldateien, $(ls "$WORK/shared" | wc -l) Gruppen, ${#ARTIFACTS[@]} Artefakt(e), ${#PI_FILES[@]} Pi-Datei(en)"
+    echo "   $(ls "$WORK/live-rules" | wc -l) Regeldateien, $(ls "$WORK/shared" | wc -l) Gruppen, $(ls "$WORK/lists" | wc -l) Liste(n), ${#ARTIFACTS[@]} Artefakt(e), ${#PI_FILES[@]} Pi-Datei(en)"
 }
 
 # ---------- Vergleich ----------
@@ -104,6 +108,17 @@ compare() {
             if diff -q "$g/agent.conf" "$AGENT_DIR/$gn/agent.conf" >/dev/null; then echo "same      agent-configs/$gn/agent.conf"; else echo "differs   agent-configs/$gn/agent.conf  $g/agent.conf"; fi
         else
             echo "only-live agent-configs/$gn/agent.conf  $g/agent.conf"
+        fi
+    done
+    # CDB-Listen (Quelldateien)
+    for f in "$WORK/lists"/*; do
+        [[ -f "$f" ]] || continue
+        b="$(basename "$f")"
+        [[ " ${LIST_IGNORE[*]} " == *" $b "* ]] && continue
+        if [[ -f "$LISTS_DIR/$b" ]]; then
+            if diff -q "$f" "$LISTS_DIR/$b" >/dev/null; then echo "same      lists/$b"; else echo "differs   lists/$b  $f"; fi
+        else
+            echo "only-live lists/$b  $f"
         fi
     done
     # Artefakte
