@@ -19,6 +19,16 @@
     <field name="audit.execve.a1">^list$</field>
     <description>Firewall-Werkzeug: Dienst liest Ruleset (auid unset, nur list) - kein Alert</description>
   </rule>
+  <!-- Dieselbe Stillregel fuer "nft -j list ...": a1 ist dann die Option, a2 das
+       Kommando. Befund 40: Artefakt-Umbau hatte die Reihenfolge gedreht, 1.100 L7/Tag. -->
+  <rule id="110188" level="0">
+    <if_sid>80700</if_sid>
+    <field name="audit.key">fw_tamper</field>
+    <field name="audit.auid">^4294967295$</field>
+    <field name="audit.execve.a1">^-j$</field>
+    <field name="audit.execve.a2">^list$</field>
+    <description>Firewall-Werkzeug: Dienst liest Ruleset (auid unset, -j list) - kein Alert</description>
+  </rule>
 
   <!-- Basis: interaktiver oder nicht-lesender Firewall-Werkzeug-Aufruf. -->
   <rule id="110190" level="7">

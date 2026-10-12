@@ -26,7 +26,7 @@ every mistake along the way is written down in [TUNING.md](TUNING.md).
 | OpenCanary | honeypot with SSH/HTTP/SMB/Redis/VNC decoys | LXC |
 | Velociraptor 0.77 | EDR: baseline and firewall-state artifacts on all Linux hosts | LXC + 9 clients |
 | auditd | execve auditing of firewall tools on the attack target | redcanary VM |
-| DFIR-IRIS 2.4 | case management; one case per alert of level ≥ 7 | VM |
+| DFIR-IRIS 2.4 | case management; one case per alert of level ≥ 7 from the sensor groups (Pi-hole, Suricata, honeypot, Velociraptor, …); Wazuh’s own rootcheck/FIM/PAM alerts stay in the SIEM | VM |
 | MISP 2.5 | threat intelligence, queried with decay scoring | VM |
 | Ollama | nimble (decision model), Gemma 4 12B (triage), gpt-oss 20B (second opinion) | separate PC, RX 5700 XT |
 | Grafana + Prometheus | alert dashboard on the OpenSearch index; host, Pi-hole and Fritzbox metrics | LXC |
@@ -67,7 +67,7 @@ newly-registered domains, blocked-domain hammering) are tuned on a 24 h
 baseline of real traffic and validated with synthetic cases; the Suricata
 chain was verified end to end with a known-bad user agent sent from the LAN.
 
-## Three things that were broken while everything looked green
+## Four things that were broken while everything looked green
 
 These are the findings I would talk about in an interview. Each has a full
 write-up.
@@ -87,6 +87,26 @@ without back-off. Fixed on both sides: a frequency rule turns the retry loop
 into one event, an analytics detector names the client (the dnsmasq block
 line does not carry it), and two standby switches on the TV ended the night
 traffic. → finding 35
+
+**The bridge dropped the first event of every day.** Velociraptor writes
+event results into one file per client, source and day; the Wazuh agent reads
+those files by wildcard and, when it discovers a new file at runtime, starts at
+the end. The event that created the file was lost — with every line of the
+same burst. On a quiet system almost every real event is the first of its day,
+so the bridge had been losing most of what it would ever have reported, while
+the Atomic tests passed because earlier tests had already created the day's
+files. Reproduced three times, `only-future-events` did not help. Fixed with a
+heartbeat row written by each artifact source just after midnight UTC, so the
+day's file exists before anything real happens. → finding 39
+
+<!-- Operations-Absatz, Satz ergaenzen: -->
+The daily check is a script (`scripts/daily-check.sh`) that prints the
+counts next to their expected values, the top rules of the day, what reached
+triage, the Pi-hole block histogram from the FTL database and the watchdog's
+red lines. Two of its lines exist because a number was wrong for days without
+anyone noticing (findings 36, 37).
+
+<!-- "35 numbered findings" -> "40 numbered findings" -->
 
 ```
 Pi-hole blocks per hour, 2026-10-09, before the fix

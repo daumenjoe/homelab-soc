@@ -571,6 +571,214 @@ redcanary *während* eines Laufs aus, meldet der Watchdog das nicht.
 - TUNING: finding 36
 ---
 
+### Befund 37: Rootcheck meldet Rust-Coreutils als Trojaner, 236 Level-7-Alerts am Tag (2026-10-11)
+
+**Symptom:** Tagescheck zeigt 715 Alerts ohne L1 am Vormittag, Top-5 zum ersten
+Mal gelesen: 236 x Regel 510 "Host-based anomaly detection event (rootcheck)",
+114 x 550 "Integrity checksum changed". Zusammen die Hälfte des Tagesstands.
+
+**510:** `Trojaned version of file '/usr/bin/ls' detected. Signature used:
+'bash|^/bin/sh|dev/[^clu]|...' (Generic)` — zehn Coreutils-Binaries je Host,
+sechs Hosts. Nicht neu: gestern dieselben Zahlen (98 bzw. 40 je Host = zwei
+Rootcheck-Läufe à 49 bzw. 20 Dateien). Ursache: `/usr/bin/ls ->
+../lib/cargo/bin/coreutils/ls`, Paket `coreutils-from-uutils`. Die
+Rust-Coreutils der neuen Ubuntu-Version sind 2-MB-Binaries voller Strings
+wie `/bin/sh` und `bash`; Rootchecks `check_trojans` greppt genau danach, mit
+Signaturen aus der Zeit, als Rootkits so gebaut wurden. Gegen diese Binaries
+ist die Prüfung ein Zufallsgenerator.
+
+**Fix:** nicht Regel 510 absenken (die trägt auch versteckte Ports, Dateien in
+/dev, Prozess-Anomalien), sondern die eine Prüfung aus:
+`<rootcheck><check_trojans>no</check_trojans></rootcheck>` in der
+`default`-Gruppen-agent.conf (alle Agenten sind Mitglied) und, weil agent.conf
+für den Manager selbst nicht gilt, in dessen ossec.conf. remoted warnt danach
+"Multigroup ... was modified from outside, so it was regenerated" — harmlos.
+Erwartung: 510 morgen nahe 0; was bleibt, ist lesenswert.
+
+**550 auf pve:** `/etc/pve/priv/authkey.key`, `authkey.pub*` rotiert PVE
+täglich (Ticket-Signaturschlüssel); `qemu-server/*.conf` und `lxc/*.conf`
+ändert vzdump beim Nachtbackup (`lock: backup` rein und raus); `.vmlist`,
+`.version` sind pmxcfs-intern. Ein Backup-Lauf = ein Dutzend Level-7-FIM-Alerts,
+jede Nacht, seit dem Umbau auf lokale Backups (Befund 23). Bewusst nicht
+getuned: ohne `report_changes` ist eine vzdump-Lock-Zeile nicht von einer
+echten Konfig-Änderung zu unterscheiden, und VM-Konfig-Änderungen will ich
+sehen. Preis bekannt, steht hier.
+
+**Nebenbefund, README war falsch:** "one case per alert of level >= 7" stimmt
+nicht. Die IRIS-Integration hat einen Gruppenfilter
+(`pihole,pihole_analytics,unbound,honeypot,fritzbox,docker_unexpected,
+suricata,kismet,hw_metrics,velociraptor`); Wazuhs Standardgruppen (rootcheck,
+syscheck, pam, apparmor) bleiben im SIEM. Deshalb haben die 236 Rootcheck-
+Fehlalarme die Triage nie erreicht (Integrations-Log: 0 x 510). Richtige
+Entscheidung, falsch dokumentiert; README korrigiert.
+
+**Lehre:** Der Tagescheck zählte Summen. Eine Summe von 715 sagt nichts, wenn
+die Hälfte davon seit Tagen dieselben zwei Regeln sind. Neue Zeile im
+Tagescheck: Top-5-Regeln ab Level 2.
+
+---
+
+### Befund 38: Zwei Regeln, ein Fernseher — Befund 35 war nur halb fertig (2026-10-11)
+
+**Symptom:** Integrations-Log, letzte drei Zeilen: `rule 110040 -> IRIS alert
+845/846/847 (dm-suspicious, llm-benign, llm-disagree)` im Fünf-Minuten-Takt um
+17:30. Domain: `androidtvchannels-pa.googleapis.com`. 18 IRIS-Fälle heute, 101
+seit Bestehen des Logs, alle derselbe Fernseher, alle vom LLM als harmlos
+eingestuft, zwei Drittel mit Widerspruch des zweiten Modells.
+
+**Ursache:** 110040 (Level 7, "blocked 30+ times in 5 min — beaconing",
+if_matched_sid 110010, same_field dns.domain) gab es schon, bevor Befund 35 die
+110061 (Level 5, 30 in 10 min, "Retry-Loop") gebaut hat. Beide messen dasselbe.
+Befund 35 hat die Level-1-Flut und die Push-Nachrichten gestoppt; die *teure*
+Variante derselben Quelle lief weiter: Level 7, Gate-Modell, Triage-LLM,
+Zweitmeinung, IRIS-Fall. Zehn davon kosten mehr Rechenzeit als die 3.300
+Level-1-Alerts zusammen. Im Tagescheck unsichtbar, weil der die Summe zählt und
+nicht fragt, wer die Triage beschäftigt.
+
+**Unterschied zwischen Retry-Loop und Beaconing:** keiner in der Mechanik, nur
+in der Domain. Der dnsmasq-Blockeintrag trägt keinen Client (Befund 35), also
+bleibt die Domain das einzige Unterscheidungsmerkmal. Dafür gibt es CDB-Listen.
+
+**Fix:**
+- `/var/ossec/etc/lists/dns-telemetry` (Key:Kommentar), Eintrag
+  `androidtvchannels-pa.googleapis.com:philips-tv`; `<list>` in ossec.conf;
+  analysisd kompiliert die `.cdb` beim Start selbst.
+- 110061: `<list field="dns.domain" lookup="match_key">` — bekannte
+  Telemetrie, Level 5, kein IRIS.
+- 110040: `<list field="dns.domain" lookup="not_match_key">` — unbekannte
+  Domain, Level 7, Triage.
+- Disjunkt: ein Event trifft genau eine der beiden. `<list>` in einer
+  Frequenzregel prüft wie `<field>` nur das aktuelle Event (Befund 33), hier
+  unschädlich, weil `same_field dns.domain` garantiert, dass alle gezählten
+  Events dieselbe Domain haben.
+
+**Verifikation (wazuh-logtest, 31 x dieselbe Blockzeile):** TV-Domain → 30 x
+110010, 1 x 110061 L5, kein 110040. `c2.evil-example.net` → 30 x 110010,
+1 x 110040 L7 mit MITRE T1071.004, kein 110061. Live-Gegenprüfung über den
+Tagescheck am Folgetag.
+
+**Offen:** Die Liste hat einen Eintrag. Jede weitere Telemetrie-Domain, die
+einen Retry-Loop fährt, produziert erst einmal IRIS-Fälle, bis sie eingetragen
+ist. Das ist gewollt: Ein unbekannter Loop *soll* einmal durch die Triage, und
+"llm-benign" plus Listeneintrag ist dann der Abschluss. Die Analytics-Allowlist
+auf dem Pi und diese Liste sind zwei getrennte Dinge mit ähnlichem Inhalt;
+zusammenführen wäre ein Umbau, notiert.
+
+**Tagescheck, neue Zeilen:** Top-5-Regeln ab Level 2 (Befund 37), Top-3-Regeln
+im Integrations-Log *für heute* (das Log zählt seit Bestehen, 101 ist keine
+Tageszahl), Pi-hole-Blocks je Stunde aus der FTL-DB statt aus alerts.json
+(seit Option C in Befund 35 kommt 110010 dort nicht mehr an; die alte Zeile
+war seit gestern leer und hätte es für immer bleiben können).
+
+**sync-check.sh** kennt jetzt `lists/` (Quelldateien, nicht die .cdb; Wazuhs
+eigene `audit-keys` und `security-eventchannel` ausgenommen).
+
+### Nachtrag zu Befund 37: zweite 510-Quelle, LXC (2026-10-12)
+
+Nach `check_trojans no` sind die Trojaner-Meldungen weg (wazuh, iris: beide
+uutils). Übrig: 49 x 510 je Rootcheck-Lauf auf jedem **LXC-Container** (canary,
+grafana, relay, velociraptor): `File '/dev/.lxc/proc/<x>' present on /dev.
+Possible hidden file.` LXC spiegelt /proc des Containers nach /dev/.lxc/,
+Rootcheck hält jede Datei dort für versteckt. Fix in der default-agent.conf:
+`<ignore>/dev/.lxc</ignore>` im rootcheck-Block, nicht `check_dev no`: echte
+Dateien in /dev sollen weiter auffallen. Die ursprüngliche Annahme "alle 510
+sind uutils" war von der Wazuh-VM auf alle Hosts übertragen; die Frage "haben
+wir auf grafana überhaupt uutils?" hat das korrigiert (`dpkg -S /usr/bin/ls`
+→ coreutils).
+
+---
+
+### Befund 39: Velociraptor-Brücke verliert das erste Event des Tages (2026-10-11/12)
+
+**Symptom:** `ufw disable; sleep 130; ufw enable` auf llm: Datastore hat 27 x
+removed und 27 x added, Wazuh nur die 27 added. Kein 110186, kein 110185. Der
+Alarm "firewall torn down" (Level 12) fehlte, nur das harmlose Wiedereinschalten
+kam an.
+
+**Ursache:** Velociraptor schreibt Event-Ergebnisse je Client, Artefakt, Quelle
+und **Tag** in eine Datei (`.../monitoring/<Artefakt>/<Quelle>/<YYYY-MM-DD>.json`,
+Tagesgrenze 00:00 UTC). Der Wazuh-Logcollector auf dem Velociraptor-Host liest
+diese Dateien per Wildcard. Eine Datei, die erst zur Laufzeit entsteht, wird
+beim Entdecken (`logcollector.vcheck_files`, Standard 64 s) **vom Ende** gelesen.
+Alles, was bis dahin drinsteht, ist weg: das Event, das die Datei angelegt hat,
+inklusive aller Zeilen desselben Vorgangs. Dreimal reproduziert (llm, wazuh,
+grafana), auch mit `only-future-events no` in allen vier localfile-Blöcken
+(`merged.mg` geprüft, Agent neu gestartet). Die Option hilft beim
+Agent-Neustart (liest ab gemerkter Position), nicht bei neu entdeckten Dateien.
+
+**Warum das schwer wiegt:** Auf einem ruhigen System meldet jede Quelle an den
+meisten Tagen nichts. Fast jedes echte Event ist damit das erste seines Tages,
+legt die Datei an und geht verloren. Die Velociraptor-Brücke (Befund 32) hat
+seit ihrem Bau den Großteil dessen verloren, was sie je gemeldet hätte. Die
+Atomic-Tests (T1053.003, T1098.004, T1562.004 Weg B) waren "detected", weil vor
+jedem Test schon Dateien des Tages existierten: Test-Artefakte des Testens.
+Befund 34 hatte das Verhalten als Test-Hinweis abgelegt ("Agent liest neue
+Dateien vom Ende, für Tests frischen Diff erzeugen"). Es war eine tägliche
+Erkennungslücke von Mitternacht bis zum ersten Event, je Quelle, je Client.
+
+**Fix, Velociraptor-seitig:** Jede Quelle beider Event-Artefakte bekommt einen
+zweiten Zweig via `chain(async=TRUE, a={diff…}, b={heartbeat})`. Der Heartbeat
+tickt mit `clock(period=Period)` und schreibt nur in den ersten zwei Minuten
+nach 00:00 UTC eine Zeile `Diff="heartbeat"` mit leeren Feldern:
+
+```
+WHERE now() - int(int=now() / 86400) * 86400 < Period * 2
+```
+
+(VQL kennt kein `%`.) Damit existiert jede Tagesdatei, bevor ein echtes Event
+kommt. Wazuh 110187 (Level 0, `Diff=heartbeat`, Kind von 110180, **vor**
+110181-110186 in der Datei, sonst trifft ein Heartbeat mit `Port 0` die
+Port-Regel) schluckt sie. Zusätzlich `logcollector.vcheck_files=10` auf dem
+Velociraptor-Host: Restlücke nach dem Heartbeat ~10 s statt ~60.
+
+**VQL-Lehren dabei:** LET innerhalb einer Subquery lehnt der Parser ab
+("unexpected token LET"); eine execve je Tick erreicht man, indem Stdout durch
+`foreach`-Stufen nach innen gereicht wird (Nachtrag 33c, 3x nft → 1x, per
+`ausearch` auf redcanary verifiziert). `chain(async=TRUE)` läuft in
+CLIENT_EVENT-Artefakten parallel. `WHERE TRUE` als Testschalter für die
+Heartbeat-Bedingung: beim Artefakt-Update je Quelle ersetzen, nicht nur die
+letzte (Editor-Falle, hat eine Stunde gekostet).
+
+**Nagelprobe 2026-10-12:** alle 10 Tagesdateien um 02:01-02:04 Ortszeit
+angelegt, je 2 Heartbeats, erste Zeile 00:00:06-00:00:56Z (UTC-Tagesgrenze
+bestätigt). `synctest` auf grafana (nur Heartbeats am Tag): `added probe` UND
+`removed probe` im SIEM. Baseline (Listeners, AuthorizedKeys, Cron) abends mit
+demselben Zweig nachgezogen, 10/10/10.
+
+**Betriebsregel:** Beim Einspielen eines CLIENT_EVENT-Artefakts kurz zwei
+Queries nebeneinander; einmal `removed`+`added` in derselben Sekunde gesehen.
+Nach einem Update 90 s warten, bevor getestet wird.
+
+---
+
+### Befund 40: 1.124 Level-7-Alerts, weil redcanary wieder lief (2026-10-12)
+
+**Symptom:** Top-1 im Tagescheck: `110190 T1562.004: Firewall-Werkzeug
+aufgerufen durch auid 4294967295 (exe /usr/sbin/nft -j)`, 1.124 Stück, einer je
+Minute.
+
+**Ursache:** Die Stillregel 110189 (auid unset + `a1 = list`) deckte die
+Artefakt-Form `nft -j list ruleset` nie ab, dort ist `a1 = -j`. Das fiel nicht
+auf, weil redcanary, der einzige Host mit auditd, seit Freitag aus war. Heute
+lief er, und FirewallState pollt jede Minute.
+
+**Falscher erster Fix:** Ich hatte die Argumentreihenfolge im Artefakt auf
+`list ruleset -j` gedreht, in der Annahme, das sei die alte Form. War es nicht
+(die Datei vom Donnerstag hatte schon `-j list ruleset`), und nft nimmt Optionen
+nur vor dem Kommando: "options must be specified before commands". Ergebnis:
+leeres Stdout, Diff-Query blind, Heartbeats liefen weiter. Vom `synctest`
+entdeckt (gar nichts kam, nicht mal `removed`), über Datastore → Ops-Log →
+`nft` von Hand auf grafana eingegrenzt.
+
+**Richtiger Fix:** Artefakt zurück auf `-j list ruleset`, mit Kommentar warum.
+Zweite Stillregel 110188 in 0920: auid unset + `a1 = -j` + `a2 = list`, Level 0.
+110189 bleibt für die nackte Form.
+
+**Lehre:** Ein Vertrag zwischen zwei Systemen (Argumentreihenfolge hier,
+Wazuh-Regel dort) gehört als Kommentar an beide Enden. Und: "einer je Minute
+auf genau einem Host" ist die Signatur eines eigenen Pollers, keine Angriffs-
+Signatur; der Tagescheck zeigt das jetzt in der Top-5.
+
 ### Korrekturen (2026-10-09)
 
 - **Baseline-Abdeckung ist 9/9, nicht 7/9.** Die Zaehlung vom 06.10. zaehlte

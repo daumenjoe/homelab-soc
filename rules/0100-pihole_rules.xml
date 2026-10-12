@@ -85,10 +85,11 @@
     <mitre><id>T1568.002</id></mitre>
   </rule>
 
-  <!-- Blocklist-Beaconing: ein Client rennt dauernd gegen die Blockliste -->
+  <!-- Blocklist-Beaconing zu UNBEKANNTER Domain: Level 7, Triage -->
   <rule id="110040" level="7" frequency="30" timeframe="300">
     <if_matched_sid>110010</if_matched_sid>
     <same_field>dns.domain</same_field>
+    <list field="dns.domain" lookup="not_match_key">etc/lists/dns-telemetry</list>
     <description>Pi-hole: $(dns.domain) blocked 30+ times in 5 min - beaconing to blocked domain</description>
     <mitre><id>T1071.004</id></mitre>
   </rule>
@@ -118,9 +119,10 @@
     <if_matched_sid>110010</if_matched_sid>
     <same_field>dns.domain</same_field>
     <description>Pi-hole: $(dns.domain) 30+ mal in 10 min angefragt trotz Block (Retry-Loop / Telemetrie-SDK)</description>
+    <list field="dns.domain" lookup="match_key">etc/lists/dns-telemetry</list>
     <group>dns_blocked,pihole_noise,</group>
   </rule>
-
+  
   <!-- TXT-Queries mit verdächtigem Namen: eigener Zählpfad fürs Tunneling.
        Steht am Dateiende, weil alle Eltern-Regeln vorher definiert sein müssen. -->
   <rule id="110025" level="7">

@@ -5,6 +5,15 @@ description: |
   authorized_keys (Persistenz), neue Cron-Zeilen (Persistenz). Alle 60 Sekunden (Parameter Period) per diff() gegen den
   letzten Stand; die erste Runde nach dem Start ist der Bestand und wird nicht gemeldet.
   Jede Zeile trägt den Hostnamen, damit ein SIEM sie zuordnen kann.
+
+  Heartbeat (Befund 39): jede Quelle schreibt in den ersten zwei Minuten nach
+  00:00 UTC ein bis zwei Zeilen Diff="heartbeat". Zweck: die Tagesdatei im
+  Server-Datastore anlegen, BEVOR das erste echte Event kommt. Der Wazuh-
+  Logcollector liest zur Laufzeit neu entdeckte Dateien vom Ende (auch mit
+  only-future-events=no); das Event, das die Datei anlegt, ging verloren, und
+  auf einem ruhigen System ist fast jedes echte Event das erste seines Tages.
+  Wazuh 110187 (Level 0) schluckt den Heartbeat. Bedingung mit int()-Arithmetik,
+  VQL kennt kein %. Gleiche Mechanik wie Homelab.Events.FirewallState.
 type: CLIENT_EVENT
 
 parameters:
@@ -15,6 +24,8 @@ parameters:
 sources:
   - name: Listeners
     query: |
+      SELECT * FROM chain(async=TRUE,
+      a={
       SELECT Diff, Host, Pid, Name, IP, Port, Family,
              timestamp(epoch=now()) AS Time
       FROM diff(
@@ -27,9 +38,18 @@ sources:
         },
         key="Key", period=Period)
       WHERE Diff = 'added'
+      },
+      b={
+      SELECT "heartbeat" AS Diff, info().Hostname AS Host, 0 AS Pid, "" AS Name,
+             "" AS IP, 0 AS Port, "" AS Family, timestamp(epoch=now()) AS Time
+      FROM clock(period=Period)
+      WHERE now() - int(int=now() / 86400) * 86400 < Period * 2
+      })
 
   - name: AuthorizedKeys
     query: |
+      SELECT * FROM chain(async=TRUE,
+      a={
       SELECT Diff, Host, Path, Line, timestamp(epoch=now()) AS Time
       FROM diff(
         query={
@@ -41,9 +61,18 @@ sources:
         },
         key="Key", period=Period)
       WHERE Diff = 'added'
+      },
+      b={
+      SELECT "heartbeat" AS Diff, info().Hostname AS Host, "" AS Path, "" AS Line,
+             timestamp(epoch=now()) AS Time
+      FROM clock(period=Period)
+      WHERE now() - int(int=now() / 86400) * 86400 < Period * 2
+      })
 
   - name: Cron
     query: |
+      SELECT * FROM chain(async=TRUE,
+      a={
       SELECT Diff, Host, Path, Line, timestamp(epoch=now()) AS Time
       FROM diff(
         query={
@@ -55,3 +84,10 @@ sources:
         },
         key="Key", period=Period)
       WHERE Diff = 'added'
+      },
+      b={
+      SELECT "heartbeat" AS Diff, info().Hostname AS Host, "" AS Path, "" AS Line,
+             timestamp(epoch=now()) AS Time
+      FROM clock(period=Period)
+      WHERE now() - int(int=now() / 86400) * 86400 < Period * 2
+      })

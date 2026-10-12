@@ -8,6 +8,16 @@
     <field name="Host">\.+</field>
     <description>Velociraptor baseline change on $(Host)</description>
   </rule>
+  
+    <!-- Heartbeat der Velociraptor-Event-Artefakte (Befund 39): legt nach 00:00 UTC
+       die Tagesdatei im Datastore an, damit der Logcollector sie kennt, bevor das
+       erste echte Event kommt. Kein Inhalt, Level 0 = nicht loggen. Steht vor den
+       Kindregeln, damit nichts Nachgelagertes darauf anspringt. -->
+  <rule id="110187" level="0">
+    <if_sid>110180</if_sid>
+    <field name="Diff">^heartbeat$</field>
+    <description>Velociraptor: heartbeat (Tagesdatei angelegt), stillgelegt</description>
+  </rule>
 
   <!-- Persistenz: neuer SSH-Key -->
   <rule id="110182" level="10">

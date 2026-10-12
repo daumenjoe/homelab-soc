@@ -15,7 +15,15 @@ description: |
   Alle 60 Sekunden (Parameter Period) per diff(); die erste Runde nach dem
   Start ist der Bestand und wird nicht gemeldet. Meldet added UND removed.
   Quelle: nft -j list ruleset (JSON). VQL-Bausteine am 2026-10-09 auf llm
-  (ufw, 320 Zeilen) gegen Python-Sollwerte verifiziert.
+  (ufw, 320 Zeilen) gegen Python-Sollwerte verifiziert; am 2026-10-11 auf eine
+  execve je Tick umgebaut (vorher 3x).
+
+  Heartbeat: in den ersten zwei Minuten nach 00:00 UTC schreibt jeder Client
+  ein bis zwei Zeilen Diff="heartbeat". Zweck ist nicht Lebenszeichen, sondern
+  die Tagesdatei im Server-Datastore anzulegen, BEVOR das erste echte Event
+  kommt: der Wazuh-Logcollector liest zur Laufzeit neu entdeckte Dateien vom
+  Ende (auch mit only-future-events=no), das Event, das die Datei anlegt, geht
+  verloren (Befund 39). Wazuh: 110187 Level 0 schluckt den Heartbeat.
 
 type: CLIENT_EVENT
 
@@ -29,40 +37,64 @@ parameters:
 sources:
   - name: Chains
     query: |
-      -- Bewusst "=" (lazy): die LETs stehen auf Source-Ebene, ein "<=" wuerde
-      -- Raw beim Artefakt-Start einfrieren und das Artefakt blind machen.
-      -- Preis: nft -j laeuft 3x je Tick (Objs/Chains/CountDict referenzieren
-      -- Raw). Auf 9 Hosts je Minute harmlos; verifiziert am 2026-10-09.
-      LET Raw = SELECT Stdout FROM execve(argv=[NftPath, "-j", "list", "ruleset"], length=10000000)
-
+      -- Warum keine LETs: auf Source-Ebene muessten sie "=" (lazy) sein, sonst
+      -- friert der Stand beim Artefakt-Start ein; lazy heisst aber, dass jede
+      -- Referenz nft neu startet (3x je Tick). LET innerhalb der diff-Query
+      -- lehnt der Parser ab ("unexpected token LET", 0.77). Daher: eine
+      -- execve, deren eine Ergebniszeile (Stdout) ueber foreach-Stufen nach
+      -- innen gereicht wird. parse_json laeuft 2x je Tick (Regeln, Chains),
+      -- das ist billig; nft nur 1x.
+      --
       -- nftables-JSON: Array aus {metainfo}|{table}|{chain}|{rule}; jedes Objekt
       -- hat genau einen Schluessel. get() statt direktem Zugriff, sonst meldet
-      -- VQL jeden fehlenden Schluessel als Fehler.
-      -- Aliase ChainObj/RuleObj statt chain/rule: "chain" ist ein VQL-Plugin,
-      -- der Artefakt-Linter lehnt einen gleichnamigen Alias ab.
-      LET Objs = SELECT get(field="chain") AS ChainObj, get(field="rule") AS RuleObj
-                 FROM foreach(row=parse_json(data=Raw[0].Stdout).nftables)
-
-      LET Chains = SELECT ChainObj.family + " " + ChainObj.table AS Table,
-                          ChainObj.name AS Chain,
-                          ChainObj.family + " " + ChainObj.table + "/" + ChainObj.name AS Key
-                   FROM Objs WHERE ChainObj
-
-      -- Regeln je Chain als Dict, Lookup per get(). Parametrisierte LET-
-      -- Funktionen und korrelierte Subqueries sahen den aeusseren Key nicht;
-      -- das Dict ist die Form, die funktioniert. Bewusst "=" statt "<=":
-      -- im Event-Artefakt wuerde "<=" das Dict beim Start einfrieren.
-      LET CountDict = to_dict(item={
-            SELECT RuleObj.family + " " + RuleObj.table + "/" + RuleObj.chain AS _key,
-                   count() AS _value
-            FROM Objs WHERE RuleObj GROUP BY _key })
-
+      -- VQL jeden fehlenden Schluessel als Fehler. Aliase ChainObj/RuleObj
+      -- statt chain/rule: "chain" ist ein VQL-Plugin (Linter: symbol_mask_warn).
+      SELECT * FROM chain(async=TRUE,
+      a={
       SELECT Diff, Host, Table, Chain, Rules, timestamp(epoch=now()) AS Time
       FROM diff(
         query={
           SELECT info().Hostname AS Host, Table, Chain, Key,
                  get(item=CountDict, field=Key, default=0) AS Rules
-          FROM Chains
+          FROM foreach(
+            -- Stufe 1: nft einmal, dazu das Regelzahl-Dict aus demselben Stdout.
+            -- Reihenfolge "-j list ruleset" ist Pflicht: nft verlangt Optionen VOR
+            -- dem Kommando ("options must be specified before commands"), sonst
+            -- leeres Stdout und die Diff-Query sieht nichts (Befund 40). Auf der
+            -- auditd-Seite ist damit a1 = "-j", a2 = "list": Wazuh-Stillregel 110188.
+            row={
+              SELECT Stdout,
+                     to_dict(item={
+                       SELECT RuleObj.family + " " + RuleObj.table + "/" + RuleObj.chain AS _key,
+                              count() AS _value
+                       FROM foreach(row={
+                              SELECT get(field="rule") AS RuleObj
+                              FROM foreach(row=parse_json(data=Stdout).nftables) })
+                       WHERE RuleObj
+                       GROUP BY _key
+                     }) AS CountDict
+              FROM foreach(row={
+                     SELECT Stdout FROM execve(argv=[NftPath, "-j", "list", "ruleset"], length=10000000) })
+            },
+            -- Stufe 2: Chains aus demselben Stdout, CountDict wird durchgereicht
+            query={
+              SELECT ChainObj.family + " " + ChainObj.table AS Table,
+                     ChainObj.name AS Chain,
+                     ChainObj.family + " " + ChainObj.table + "/" + ChainObj.name AS Key,
+                     CountDict
+              FROM foreach(row={
+                     SELECT get(field="chain") AS ChainObj
+                     FROM foreach(row=parse_json(data=Stdout).nftables) })
+              WHERE ChainObj
+            })
         },
         key="Key", period=Period)
       WHERE Diff = 'added' OR Diff = 'removed'
+      },
+      b={
+      SELECT "heartbeat" AS Diff, info().Hostname AS Host, "" AS Table, "" AS Chain,
+             0 AS Rules, timestamp(epoch=now()) AS Time
+      FROM clock(period=Period)
+      -- Sekunden seit 00:00 UTC; VQL kennt kein %, daher int()-Arithmetik
+      WHERE now() - int(int=now() / 86400) * 86400 < Period * 2
+      })
