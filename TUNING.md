@@ -779,6 +779,46 @@ Wazuh-Regel dort) gehört als Kommentar an beide Enden. Und: "einer je Minute
 auf genau einem Host" ist die Signatur eines eigenen Pollers, keine Angriffs-
 Signatur; der Tagescheck zeigt das jetzt in der Top-5.
 
+### Nachtrag zu Befund 38: Umbau nach zwei Lookup-Aussetzern (2026-10-14)
+
+**Strichliste:** 2026-10-12 15:21 und 2026-10-14 17:26 hat 110040 auf
+`androidtvchannels-pa.googleapis.com` gezündet, obwohl die Domain in der CDB-
+Liste steht und `not_match_key` sie hätte ausschließen müssen. Kein Restart,
+kein Fehler im Manager-Log, dazwischen Dutzende korrekte Treffer von 110061.
+Zwei Aussetzer in drei Tagen; die Schwelle aus Befund 38 war zwei.
+
+**Umbau:** Die Liste wird nicht mehr in Frequenzregeln geprüft, sondern einmal,
+sofort, in einer Vorfeld-Regel:
+
+- 110011 (Level 1, `if_sid 110010`, `match_key` dns-telemetry): Block einer
+  bekannten Rausch-Domain. Steht in der Datei VOR 110040 und 110061.
+- 110061 (Level 5, 30/600): `if_matched_sid 110011`, ohne Liste.
+- 110040 (Level 7, 30/300): `if_matched_sid 110010`, ohne Liste.
+
+Wirkung eines Lookup-Aussetzers: Das gelistete Event wird ein gewöhnliches
+110010 und zählt für 110040 als eins von dreißig in fünf Minuten. Ein einzelner
+Aussetzer kann keinen Alarm mehr auslösen; nur ein dauerhaft kaputter Lookup
+würde es, und das wäre dann ein echter Befund. Logtest: TV-Domain → 110011 ×30,
+110061; erfundene Domain → 110010 ×30, 110040 mit MITRE.
+
+**Warum der Lookup aussetzt,** ist weiter offen. Mehrfädiges analysisd, geteilte
+CDB; zwei Beobachtungen reichen nicht für eine Aussage. Der Umbau macht die
+Frage unwichtig, das ist der Sinn.
+
+**Liste:** `ws.batch.com` (Push-SDK, Handy) ergänzt. `trafficjunky.net` bewusst
+nicht: Werbenetz-Pixel aus Browsern sind eine andere Klasse als Geräte-
+Telemetrie; Zählung läuft bis 2026-10-27, dann Entscheidung zwischen Liste und
+Muster-Regel (`pcre2` auf bekannte Werbenetz-Endungen vor 110040).
+
+**Kleinkram vom selben Tag:** 533 auf pi-hole (11/Tag) waren UDP-Zufallsports
+von pihole-FTL und Avahi; Netstat-Kommando in der lokalen ossec.conf des Pi um
+`grep -vE '^udp6? [^ ]+:[3-6][0-9]{4} '` ergänzt (nicht im Repo, nicht in
+sync-check). Syscheck-Ignores in der default-agent.conf für
+`/etc/velociraptor.writeback.yaml(.bak)`, `/etc/fake-hwclock.data` und
+`/etc/pihole/pihole-FTL.db*`: Daten in /etc, keine Konfiguration. 550 danach
+nur noch pve-Backup und pmxcfs. Watchdog: `ChS` auf `optional_agents`, der
+Arbeitsplatz-Agent fällt nach dem Standby für Minuten aus.
+
 ### Korrekturen (2026-10-09)
 
 - **Baseline-Abdeckung ist 9/9, nicht 7/9.** Die Zaehlung vom 06.10. zaehlte

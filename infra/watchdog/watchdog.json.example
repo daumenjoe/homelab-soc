@@ -34,6 +34,7 @@
     "password": "<REDACTED>",
     "verify": false,
     "optional_agents": [
+      "ChS",
       "redcanary"
     ]
   },
