@@ -28,7 +28,7 @@ every mistake along the way is written down in [TUNING.md](TUNING.md).
 | auditd | execve auditing of firewall tools on the attack target | redcanary VM |
 | DFIR-IRIS 2.4 | case management; one case per alert of level ≥ 7 from the sensor groups (Pi-hole, Suricata, honeypot, Velociraptor, …); Wazuh’s own rootcheck/FIM/PAM alerts stay in the SIEM | VM |
 | MISP 2.5 | threat intelligence, queried with decay scoring | VM |
-| Ollama | nimble (decision model), Gemma 4 12B (triage), gpt-oss 20B (second opinion) | separate PC, RX 5700 XT |
+| Ollama | nimble (decision model), Gemma 4 12B (triage), gpt-oss 20B (second opinion) | separate PC, RX 7900 XT |
 | Grafana + Prometheus | alert dashboard on the OpenSearch index; host, Pi-hole and Fritzbox metrics | LXC |
 | Watchdog | 14 liveness checks with ntfy push, independent of the stack | Raspberry Pi 3 |
 | Proxmox PVE 9 | hypervisor for the VMs and LXCs; nightly backups to SSD, weekly to USB | Lenovo M90q |
