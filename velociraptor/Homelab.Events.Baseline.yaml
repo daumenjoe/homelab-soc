@@ -37,7 +37,11 @@ sources:
           WHERE Status = 'LISTEN' AND Laddr.Port > 0 AND Laddr.Port < 32768 AND NOT Laddr.IP =~ "^127\\.|^::1"
         },
         key="Key", period=Period)
-      WHERE Diff = 'added'
+      -- Boot-Rennen (2026-10-15, pi-hole): startet der Client vor den Diensten,
+      -- ist die erste Runde ein leeres System und jeder Dienst danach "added";
+      -- 10 IRIS-Faelle fuer einen Reboot. In den ersten 10 Minuten Host-Uptime
+      -- keine added melden; ein spaeterer Diff sieht einen echten Listener trotzdem.
+      WHERE Diff = 'added' AND info().Uptime > 600
       },
       b={
       SELECT "heartbeat" AS Diff, info().Hostname AS Host, 0 AS Pid, "" AS Name,

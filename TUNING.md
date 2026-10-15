@@ -145,6 +145,8 @@ Sieben angereicherte Alerts mit erwartetem Verdict (`tests/triage/`), je Modell 
 
 **Bestätigung:** gemma4:12b bleibt Standard – 14/14, 7/7 stabil, als einziges der Spitzengruppe vollständig auf der 8-GB-Karte. **Lehren:** Beständigkeit zwischen Läufen ist ein eigenes Kriterium; Modellgeneration schlägt Modellgröße (qwen3 vs. qwen3.8); Community-Fine-Tunes mit Security-Label sind ohne eigenes Eval nicht einsetzbar. Eigene Vorhersage vor dem Lauf: gpt-oss richtig, Mistral und phi4 überschätzt.
 
+15.10.206 llm auf 5800X3D / RX 7900 XT 20 GB, ROCm, Gemma 4 12B 60 t/s (Prompt 1.080 t/s), 257 W unter Last. num_ctx prüfen
+
 ### Befund 18: Docker-Healthchecks zweiter Anlauf (2026-09-29)
 
 Regel 110121 (Befund 14) griff in der Produktion nicht: 83.000 87907-Events pro Tag vom MISP-Host, obwohl Testfall 52 grün war. Der Test enthielt nur mein eigenes Muster; die echten Healthchecks von MariaDB (`mysqladmin … status`) und Valkey (mehrzeiliges `sh -c '\n if [ …`) sahen anders aus. **Maßnahme:** Muster um `/bin/sh -c` als Merkmal, `mysqladmin`, `valkey-cli`, `curl`/`wget` ohne Optionsbindung und mehrzeilige Skripte erweitert; Testfall 52 enthält jetzt die drei echten Kommandos aus den Alerts. **Lehre:** Negativtests mit echten Produktionszeilen bauen, nicht mit vermuteten. Eine Volumenprüfung am Folgetag hätte den Fehlschlag am 26. gezeigt statt am 29.
@@ -749,6 +751,10 @@ demselben Zweig nachgezogen, 10/10/10.
 Queries nebeneinander; einmal `removed`+`added` in derselben Sekunde gesehen.
 Nach einem Update 90 s warten, bevor getestet wird.
 
+Nachtrag 2026-10-15: Erstes Baseline-Event nach dem Heartbeat-Fix im SIEM: 10 × 110181 vom pi-hole um 11:56, alle fünf Dienst-Ports als „added“, v4 und v6. 
+Ursache: Reboot, Velociraptor-Client vor den Diensten gestartet, erste Diff-Runde sah ein leeres System. Ohne Befund 39 wäre das Event verloren gewesen; mit ihm waren es zehn IRIS-Fälle. 
+Fix im Artefakt: info().Uptime > 600 in der Listeners-Quelle. Offen: Name ist auf dem Pi null, netstat() liefert den Prozessnamen dort nicht.
+
 ---
 
 ### Befund 40: 1.124 Level-7-Alerts, weil redcanary wieder lief (2026-10-12)
@@ -835,4 +841,6 @@ Arbeitsplatz-Agent fällt nach dem Standby für Minuten aus.
   nie `sed -i` auf ein Suchergebnis ohne vorher zu schauen, was es ist.
 
 ### Kleinkram (neu, 2026-10-08)
+
+2026-10-15: Wazuh Manager und alle Agenten auf 4.14.9. Zu prüfen: Befund 39 (Logcollector liest neue Wildcard-Dateien vom Ende) und Befund 38 (CDB-Lookup-Aussetzer) wurden auf 4.14.8 beobachtet; nach dem Update einmal synctest auf einem Client ohne Tagesdatei und die 110040-Strichliste weiterführen. Der Heartbeat bleibt unabhängig davon drin. 4.14.9 ändert nichts an 38/39
 
