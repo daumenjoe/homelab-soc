@@ -18,5 +18,13 @@
     <description>AppArmor: Discord-Snap scannt fremde Prozesse (Spielaktivitaet), von Sandbox blockiert - bekannt, kein Alert</description>
     <group>apparmor_known,</group>
   </rule>
-
+  <!-- Snap-Confinement-Rauschen auf Arbeitsplaetzen (Befund 41): Firefox sucht
+       Intel-igfx-Dateien, KeePassXC zaehlt USB ohne raw-usb-Interface, der
+       Snap-Proxy nach Refresh. Kein Signal; eng gefasst, damit ein Snap, der
+       /etc/shadow will, weiter Level 7 ist. -->
+  <rule id="110198" level="1">
+    <if_sid>52002</if_sid>
+    <regex type="pcre2">profile="snap\.[^"]+" .*name="(/etc/igfx_user_feature[^"]*|/sys/devices/[^"]*/busnum|/snap/core\d+/[^"]*\.so[^"]*)"</regex>
+    <description>AppArmor: Snap-Confinement-Rauschen (igfx/usb-busnum/core-libs), kein Alert</description>
+  </rule>
 </group>

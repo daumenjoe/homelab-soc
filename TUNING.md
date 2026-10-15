@@ -825,6 +825,13 @@ sync-check). Syscheck-Ignores in der default-agent.conf für
 nur noch pve-Backup und pmxcfs. Watchdog: `ChS` auf `optional_agents`, der
 Arbeitsplatz-Agent fällt nach dem Standby für Minuten aus.
 
+### Befund 41: AppArmor 52002 drei Tage Top-5 (2026-10-15)
+
+
+AppArmor 52002 drei Tage Top-5: auf dem Manager das zu enge Ubuntu-Profil who (passwd/nsswitch), 
+lokal ergänzt; auf dem Arbeitsplatz Snap-Confinement (Firefox igfx, KeePassXC USB ohne raw-usb, Proxy nach Refresh), 
+Override 110198 L1 eng auf die drei Muster, /etc/shadow bleibt Level 3. Lehre: 52002 nicht absenken, Verursacher benennen; einer davon war ein Systemfehler.
+
 ### Korrekturen (2026-10-09)
 
 - **Baseline-Abdeckung ist 9/9, nicht 7/9.** Die Zaehlung vom 06.10. zaehlte
