@@ -36,6 +36,9 @@ VELO_DIR="$REPO/velociraptor"
 LISTS_DIR="$REPO/lists"
 # Wazuh-eigene Listen, die nicht ins Repo gehoeren
 LIST_IGNORE=(audit-keys security-eventchannel)
+# Lokale Regeldateien: umgebungsspezifische Overrides (Suffixe, Hostnamen),
+# bewusst NICHT versioniert; werden geprueft (Dubletten), aber nie gepullt.
+RULES_LOCAL=(0109-local_overrides.xml)
 WORK="$(mktemp -d /tmp/sync-check.XXXXXX)"
 trap 'rm -rf "$WORK"' EXIT
 
@@ -83,6 +86,34 @@ PY
     echo "   $(ls "$WORK/live-rules" | wc -l) Regeldateien, $(ls "$WORK/shared" | wc -l) Gruppen, $(ls "$WORK/lists" | wc -l) Liste(n), ${#ARTIFACTS[@]} Artefakt(e), ${#PI_FILES[@]} Pi-Datei(en)"
 }
 
+# ---------- Dubletten ----------
+# Regel-IDs, die in mehreren Dateien stehen, OHNE dass die weiteren Definitionen
+# overwrite="yes" tragen: Wazuh verwirft dann eine davon stillschweigend.
+# Overrides (0109 lokal, 09xx) sind erlaubt und werden als Hinweis gelistet.
+check_dupes() {
+    local dir="$1" label="$2"
+    python3 - "$dir" "$label" <<'PY'
+import re, sys, glob, collections
+d, label = sys.argv[1], sys.argv[2]
+defs = collections.defaultdict(list)
+for f in sorted(glob.glob(d + "/*.xml")):
+    for m in re.finditer(r'<rule\s+([^>]*?)>', open(f, encoding="utf-8", errors="replace").read()):
+        attrs = m.group(1)
+        rid = re.search(r'id="(\d+)"', attrs)
+        if rid:
+            defs[rid.group(1)].append((f.rsplit("/", 1)[-1], 'overwrite="yes"' in attrs))
+bad, over = [], []
+for rid, lst in defs.items():
+    if len(lst) < 2: continue
+    n_over = sum(1 for _, o in lst if o)
+    (over if n_over >= len(lst) - 1 else bad).append((rid, [f for f, _ in lst]))
+for rid, files in sorted(over):
+    print(f"   override  {label} {rid}: " + " -> ".join(files))
+for rid, files in sorted(bad):
+    print(f"   DUBLETTE  {label} {rid}: " + ", ".join(files) + "  (kein overwrite: eine Definition ist tot)")
+PY
+}
+
 # ---------- Vergleich ----------
 # Gibt Zeilen aus:  STATUS  PFAD-IM-REPO  LIVE-PFAD
 #   same / differs / only-live / only-repo
@@ -90,6 +121,7 @@ compare() {
     # Regeln
     for f in "$WORK/live-rules"/*.xml; do
         b="$(basename "$f")"
+        [[ " ${RULES_LOCAL[*]} " == *" $b "* ]] && continue
         if [[ -f "$RULES_DIR/$b" ]]; then
             if diff -q "$f" "$RULES_DIR/$b" >/dev/null; then echo "same      rules/$b"; else echo "differs   rules/$b  $f"; fi
         else
@@ -145,6 +177,9 @@ case "$MODE" in
   check)
     fetch_live
     echo
+    echo "== Regel-IDs (live) =="
+    check_dupes "$WORK/live-rules" live
+    echo
     echo "== Abgleich (repo <-> live) =="
     compare | awk '$1!="same"' | sort > "$WORK/report"
     if [[ ! -s "$WORK/report" ]]; then
@@ -170,6 +205,7 @@ case "$MODE" in
   pull)
     fetch_live
     echo
+    check_dupes "$WORK/live-rules" live | grep DUBLETTE && { echo "   erst Dubletten beheben, dann pull"; exit 1; }
     compare | awk '$1=="differs" || $1=="only-live"' > "$WORK/todo"
     if [[ ! -s "$WORK/todo" ]]; then echo "nichts zu uebernehmen"; exit 0; fi
     echo "== wuerde ins Repo uebernehmen =="

@@ -1,0 +1,21 @@
+nohup: ignoring input
+Traceback (most recent call last):
+  File "/root/eval/tests/triage/./run-triage-eval.py", line 68, in <module>
+    main()
+  File "/root/eval/tests/triage/./run-triage-eval.py", line 41, in main
+    ci = load_ci()
+         ^^^^^^^^^
+  File "/root/eval/tests/triage/./run-triage-eval.py", line 23, in load_ci
+    exec(compile(src, str(CI), "exec"), ns)
+  File "/root/eval/integrations/custom-iris.py", line 50, in <module>
+    logging.basicConfig(filename=LOG, level=logging.INFO,
+  File "/usr/lib/python3.12/logging/__init__.py", line 2118, in basicConfig
+    h = FileHandler(filename, mode,
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/lib/python3.12/logging/__init__.py", line 1231, in __init__
+    StreamHandler.__init__(self, self._open())
+                                 ^^^^^^^^^^^^
+  File "/usr/lib/python3.12/logging/__init__.py", line 1263, in _open
+    return open_func(self.baseFilename, self.mode,
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+PermissionError: [Errno 13] Permission denied: '/tmp/triage-eval.log'

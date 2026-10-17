@@ -53,6 +53,12 @@
     <description>fritz: port forwarding event in router log: $(fritz.msg)</description>
     <mitre><id>T1133</id></mitre>
   </rule>
+  
+  <rule id="110156" level="3">
+    <if_sid>110145</if_sid>
+    <regex>WLAN-Autokanal</regex>
+    <description>fritz: WLAN auto-channel change (routine), not a configuration change</description>
+  </rule>
 
   <!-- Geraete -->
   <rule id="110148" level="6">

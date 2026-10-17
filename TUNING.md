@@ -832,6 +832,139 @@ AppArmor 52002 drei Tage Top-5: auf dem Manager das zu enge Ubuntu-Profil who (p
 lokal ergänzt; auf dem Arbeitsplatz Snap-Confinement (Firefox igfx, KeePassXC USB ohne raw-usb, Proxy nach Refresh), 
 Override 110198 L1 eng auf die drei Muster, /etc/shadow bleibt Level 3. Lehre: 52002 nicht absenken, Verursacher benennen; einer davon war ein Systemfehler.
 
+### Nachtrag zu Befund 16: Triage-Evalset auf der RX 7900 XT, Zweitmeinung getauscht (2026-10-16)
+
+**Anlass:** Neue Hardware auf llm (5800X3D, RX 7900 XT 20 GB, ROCm statt
+Vulkan, `OLLAMA_CONTEXT_LENGTH=8192`). Damit passen 24–32B-Modelle mit Kontext
+in den Speicher; im September liefen die zum Teil auf der CPU und sind daran
+gescheitert, nicht an der Aufgabe. Gleicher Prompt (`run-triage-eval.py`
+importiert die Logik aus `custom-iris.py`), gleiche sieben Fälle, zwei Läufe,
+15 Modelle, 210 Triagen, über Nacht auf dem llm selbst (nicht vom Laptop: der
+geht aus).
+
+| Modell | Treffer | stabil | Fehlurteile | Median s |
+|---|---|---|---|---|
+| gemma4:12b (Triage) | 14/14 | 7/7 | – | 13 |
+| gemma4:31b | 14/14 | 7/7 | – | 43 |
+| gemma4:26b | 12/14 | 7/7 | 05 → suspicious | 22 |
+| cogito:32b | 12/14 | 7/7 | 06 → malicious | 34 |
+| qwen3:32b | 12/14 | 7/7 | 05 → benign | 41 |
+| cogito:14b | 12/14 | 7/7 | 05 → benign (95 %) | 14 |
+| qwen3.8:27b | 12/14 | 5/7 | 02, 05 wechselnd | 29 |
+| gpt-oss-safeguard:20b | 11/14 | 6/7 | 04 einmal benign, 05 | 22 |
+| gpt-oss:20b (Zweitmeinung bis heute) | 10/14 | 6/7 | 01 → benign (2x), 05 wechselnd | 20 |
+| qwen3:14b | 10/14 | 7/7 | 02, 05 → benign | 16 |
+| gemma4:e4b | 10/14 | 7/7 | 02, 05 | 8 |
+| glm4:9b | 9/14 | 4/7 | 3 Timeouts, 03, 07 | 14 |
+| mistral-small3.2:24b | 8/14 | 7/7 | 02, 05, 07 → suspicious | 22 |
+| granite3.3:8b | 6/14 | 7/7 | fast alles suspicious | 9 |
+| qwen3:30b-a3b | 4/14 | 7/7 | fast alles benign | 22 |
+
+Fälle: 01 Tunneling mit veralteter TI (erw. suspicious/malicious), 02 Tunneling
+mit frischem VT-Treffer (malicious), 03 Hersteller-Telemetrie (benign),
+04 NRD+DGA ohne Bestätigung (suspicious/malicious), 05 Honeypot-Brute-Force
+ohne TI (malicious), 06 fremdes Docker-Image (suspicious), 07 MISP-Treffer auf
+Großdomain (benign).
+
+**Entscheidungen:**
+
+- Triage bleibt **gemma4:12b**: fehlerfrei, stabil, 13 s. gemma4:31b ist
+  ebenfalls fehlerfrei, aber dreimal so langsam und bringt auf diesem Set
+  nichts dazu. Der Prompt aus Befund 16 und dieses Modell passen zusammen.
+- Zweitmeinung **gpt-oss:20b → cogito:32b**. gpt-oss sagt bei Fall 01 zweimal
+  `benign` (78 %): den Verhaltensbefund übersehen, weil die TI alt ist; genau
+  der Fehler, den das Set sichtbar machen soll. Dazu instabil bei 05. Ein
+  `llm-disagree` von gpt-oss war damit eher ein Hinweis auf gpt-oss als auf
+  den Fall. cogito:32b: 12/14, stabil, einziger Fehler Fall 06 `malicious`
+  statt `suspicious`, also in die Richtung, in die eine Zweitmeinung irren
+  darf (schärfer, nie stiller); andere Modellfamilie als Gemma, also eine
+  zweite Sicht statt derselben Sicht zweimal. Preis: 34 s statt 20, und mit
+  19 GB kein Platz neben Gemma, ein Modellwechsel je Alert. cogito:14b wäre
+  ohne Wechsel möglich, aber `benign` mit 95 % beim Honeypot-Brute-Force ist
+  für eine Zweitmeinung der schlimmste Fehler: Sie würde ein richtiges
+  `malicious` anzweifeln.
+- Gate bleibt nimble (nicht Teil dieses Laufs).
+
+**Beobachtungen:**
+
+- **Fall 05 trennt das Feld.** Acht von fünfzehn Modellen stufen Brute Force
+  gegen den Honeypot ohne Threat-Intel ab, vier auf `benign`. Das ist der Fall,
+  der im Betrieb am häufigsten vorkommt. Kandidaten, die hier versagen, sind
+  für diesen Stack raus, egal wie sie sonst abschneiden.
+- **Konfidenz ist wertlos.** Fast jedes Modell ist bei Fehlurteilen so sicher
+  wie bei Treffern (gpt-oss 78/78, mistral 76/75, granite 85/85), cogito bei
+  Fehlern sogar sicherer (91/95). Ein Konfidenz-Schwellwert in der Pipeline
+  würde nichts filtern. Die Zahl bleibt im IRIS-Fall als Information, trägt
+  aber keine Entscheidung.
+- qwen3:30b-a3b (MoE) sagt zu fast allem `benign`, granite3.3 zu fast allem
+  `suspicious`: beide haben einen Standardwert, keine Meinung. glm4:9b lief
+  dreimal in den 300-s-Timeout.
+- Sieben Fälle sind klein; 14/14 ist kein Beweis, die Rangfolge ist belastbar.
+  Das Set wächst um einen Fall, sobald ein echter Alert eine Lücke zeigt
+  (Kandidat: der Reboot-Burst aus Befund 39, 10 x 110181 "added" auf einem
+  Host innerhalb einer Minute, erwartet `benign`).
+
+**Umsetzung:** `/var/ossec/etc/custom-iris.json`,
+`"llm_model": ["gemma4:12b", "cogito:32b"]`. Kein Restart, die Integration
+liest die Datei je Aufruf. Eine Woche `llm-disagree` im Integrations-Log
+zählen; der Anteil sollte steigen (cogito ist strenger), und die Fälle dahinter
+sollten die sein, bei denen eine zweite Meinung etwas beiträgt. Ergebnisse:
+`tests/triage/results-20261015-2155.jsonl`.
+
+**Hardware-Zeile:** llm seit 2026-10-15: Ryzen 7 5800X3D, RX 7900 XT 20 GB
+(gfx1100, ROCm offiziell, kein `HSA_OVERRIDE`), 32 GB DDR4-3600. Gemma 4 12B:
+60 t/s Generierung, 1.080 t/s Prompt, 257 W unter Last, Lüfter 30 %.
+`OLLAMA_VULKAN=1` entfernt (wirkungslos geworden, Ollama nimmt ROCm), Kontext
+auf 8192 (die Integration schickte das schon mit, `ollama run` nicht).
+
+### Befund 42: Was die Triage den ganzen Tag macht — IRIS-Liste gelesen (2026-10-16/17)
+
+**Anlass:** Beim Suchen nach dem Grund für einen Sprung der IRIS-Alert-IDs die
+Alert-Liste der letzten zwei Tage durchgelesen (40 Alerts, #1256–#1294). Der
+ID-Sprung blieb unerklärt (der Eval-Lauf aus Befund 16 war es nicht: zwischen
+21:38 und 04:56 kein einziger Alert, keine `.example`-Domain). Die Liste selbst
+war der Fund: Vier Rauschquellen, alle Level 7, alle mit Gate, Triage-LLM und
+Zweitmeinung, zusammen rund 30 der 40 Fälle.
+
+| Quelle | Regel | Alerts | Was es war | Fix |
+|---|---|---|---|---|
+| `amd-keyid-<hash>.microsoftaik.azure.net` vom llm, `<50 Zeichen>.scf.usercontent.goog` vom Android-Handy | 110022 oversized label | 14 | AMD-TPM-Attestierung gegen Microsofts AIK-Dienst (seit dem Hardware-Umbau); Google-Content-Hosting | CDN-Suffixe in der lokalen 0109 (Gate 110003): `usercontent.goog`, `microsoftaik.azure.net`. Logtest: Zeile endet bei 110002/L0, wie `04-pihole-cdn-negative` |
+| Fritzbox „WLAN-Autokanal … geändert“ | 110145 settings_changed | 3 | Router wechselt den 5-GHz-Kanal, das ist sein Job | Kindregel 110156 (`regex WLAN-Autokanal`), L3; andere settings_changed bleiben 7 |
+| `data.logentries.com` 30+/5 min, nachts um 5 | 110040 | 3 | Rapid7-InsightOps-Telemetrie eines Geräts | Liste dns-telemetry |
+| 192.168.178.1 → Canary Port 80, `/index.html`, UA not supplied | 110132 honeypot touched | 1 | Die Fritzbox tastet Geräte fürs Heimnetz-Bild ab | Kindregel 110136: Gateway-IP + logtype 3000 (HTTP ohne Login) → L3; SSH/VNC/Redis vom Gateway und jeder Login bleiben 8/10 |
+| `signaler-pa.youtube.com` von ChS, `gateway.fe2.apple-dns.net` vom iPhone | 110091 beaconing | 2 | App-Heartbeats | Analytics-Allowlist auf dem Pi: `youtube.com`, `apple-dns.net` |
+
+**Der Satz, der hängen bleibt:** Zum Honeypot-Touch des Routers sagte Gemma
+*MALICIOUS 95 %, Host 192.168.178.1 isolieren.* Der Host ist der Router. Das
+Modell kennt die Infrastruktur nicht, weil der Prompt sie nicht nennt. Nachtrag
+offen: eine Zeile im Triage-Prompt mit den Infrastruktur-Adressen (Gateway,
+Pi-hole, Manager, llm) und dem Hinweis, dass Änderungen dort Betrieb sind und
+Isolation keine Option. Gehört in `custom-iris.py`, mit sync-check davor.
+
+**Zweitmeinung, Nachtrag zu 16:** Die 7 `llm-disagree` vom 16.10. waren alle noch
+gpt-oss (Umstellung auf cogito erst am Nachmittag). Lesbar in der Liste: gpt-oss
+widerspricht mit demselben Absatz („warrants a human investigation“), egal ob
+Pi-hole-Port 53 oder YouTube-Heartbeat. Das bestätigt den Tausch; über cogito
+wissen wir nach einem Tag noch nichts.
+
+**Nebenfund, Dubletten:** Beim Einbau von 110156 war 110149 kurz doppelt
+vergeben (die Datei endet bei 110155, ich hatte die Nummer ohne Blick in die
+Datei gewählt). `grep -ohE 'rule id="[0-9]+"' rules/*.xml | sort | uniq -d`
+fand drei Dubletten live: 110003, 110072, 110174, alle Overrides mit
+`overwrite="yes"` in der lokalen 0109, also Absicht. 110174 trug ein
+Verfallsdatum („Lernphase bis 2026-10-11, danach entfernen“), das sechs Tage
+überschritten war: entfernt, neue WLAN-Clients wieder Level 8. sync-check prüft
+jetzt vor jedem pull auf Dubletten: Overrides werden gelistet, echte Dubletten
+(zwei Definitionen ohne overwrite, eine davon tot) blockieren. Die lokale 0109
+wird geprüft, aber nie verglichen oder gepullt (`RULES_LOCAL`); ein früherer
+pull hatte sie als „only-live“ ins Repo-Verzeichnis kopiert, die `.gitignore`
+hatte sie, Git nie.
+
+**Lehre:** Der Tagescheck zählt, was feuert. Die IRIS-Liste zeigt, was
+*kostet*: Jeder dieser 30 Fälle war ein Gate-Aufruf, ein Triage-LLM, eine
+Zweitmeinung und ein Fall, den jemand lesen muss. Einmal pro Woche die Liste
+lesen, nicht nur die Zahlen, ist ab jetzt Teil des Betriebs.
+
 ### Korrekturen (2026-10-09)
 
 - **Baseline-Abdeckung ist 9/9, nicht 7/9.** Die Zaehlung vom 06.10. zaehlte

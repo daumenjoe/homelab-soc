@@ -26,6 +26,13 @@
     <mitre><id>T1046</id></mitre>
     <group>honeypot_touch,</group>
   </rule>
+  
+   <rule id="110136" level="3">
+    <if_sid>110132</if_sid>
+    <field name="src_host">^192\.168\.178\.1$</field>
+    <field name="logtype" type="pcre2">^3000$</field>
+    <description>Honeypot touched by gateway $(src_host) (router device discovery, port $(dst_port))</description>
+  </rule>
 
   <!-- Login-Versuch mit Zugangsdaten: jemand probiert es wirklich -->
   <rule id="110133" level="10">
