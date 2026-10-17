@@ -32,6 +32,7 @@ PI_FILES=(
     "wazuh:/var/ossec/integrations/triage-spooler:integrations/triage-spooler.py"
     "wazuh:/etc/systemd/system/triage-spooler.service:integrations/triage-spooler.service"
     "wazuh:/etc/systemd/system/triage-spooler.timer:integrations/triage-spooler.timer"
+    "relay:/etc/fritzbox_exporter/metrics.json:infra/fritzbox_exporter/metrics.json"
 )
 
 RULES_DIR="$REPO/rules"
@@ -69,7 +70,7 @@ fetch_live() {
     for spec in "${PI_FILES[@]}"; do
         IFS=: read -r host live repo flag <<< "$spec"
         dest="$WORK/live-pi/$repo"; mkdir -p "$(dirname "$dest")"
-        ssh "$host" "sudo cat '$live'" > "$dest"
+        ssh "$host" "if command -v sudo >/dev/null; then sudo cat '$live'; else cat '$live'; fi" > "$dest"
         if [[ "${flag:-}" == "redact" ]]; then
             python3 - "$dest" <<'PY'
 import json, re, sys

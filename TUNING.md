@@ -1021,6 +1021,20 @@ ist keine Architektur, sondern eine Stromrechnung. Die Entkopplung hat die
 Integration nicht komplizierter gemacht, sie hat nur die Stelle, an der das
 Urteil verloren ging, durch eine Datei ersetzt.
 
+**Nachtrag, gemessen statt geschätzt (2026-10-17, später Abend):** Zwei
+FRITZ!DECT 200 hängen seit heute an der Rechner-Leiste (llm, PVE, drei
+Displays, Fritzbox) und am Schrank (die Raspis). Die Werte kommen über den
+vorhandenen fritzbox_exporter in Prometheus: Dienst `X_AVM-DE_Homeauto:1`,
+Aktion `GetGenericDeviceInfos` mit festem Index 0 und 1 (keine Zähl-Aktion im
+Dienst, deshalb kein `isIndex`), Rohwerte in 0,01 W, Wh und 0,1 °C, skaliert
+wird in der Abfrage. Zehn Einträge, `infra/fritzbox_exporter/add-dect-metrics.py`
+hängt sie an die `metrics.json`; die liegt jetzt mit im sync-check (relay hat
+kein sudo, der Abgleich prüft das seit heute).
+
+Die Messung, um die es ging: Rechner-Leiste 126,5 W mit llm im Leerlauf,
+60,0 W ohne. **66,5 W** für einen Rechner, der auf Triage-Anfragen wartet, rund
+580 kWh im Jahr. 
+
 ### Korrekturen (2026-10-09)
 
 - **Baseline-Abdeckung ist 9/9, nicht 7/9.** Die Zaehlung vom 06.10. zaehlte

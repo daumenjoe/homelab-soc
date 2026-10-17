@@ -1,0 +1,569 @@
+[
+  {
+    "service": "urn:schemas-upnp-org:service:WANCommonInterfaceConfig:1",
+    "action": "GetTotalPacketsReceived",
+    "result": "TotalPacketsReceived",
+    "promDesc": {
+      "fqName": "gateway_traffic",
+      "help": "traffic on gateway interface",
+      "varLabels": [
+        "gateway"
+      ],
+      "fixedLabels": {
+        "direction": "Received",
+        "unit": "Packets",
+        "interface": "WAN"
+      }
+    },
+    "promType": "CounterValue"
+  },
+  {
+    "service": "urn:schemas-upnp-org:service:WANCommonInterfaceConfig:1",
+    "action": "GetTotalPacketsSent",
+    "result": "TotalPacketsSent",
+    "promDesc": {
+      "fqName": "gateway_traffic",
+      "help": "traffic on gateway interface",
+      "varLabels": [
+        "gateway"
+      ],
+      "fixedLabels": {
+        "direction": "Sent",
+        "unit": "Packets",
+        "interface": "WAN"
+      }
+    },
+    "promType": "CounterValue"
+  },
+  {
+    "service": "urn:schemas-upnp-org:service:WANCommonInterfaceConfig:1",
+    "action": "GetAddonInfos",
+    "result": "TotalBytesReceived",
+    "promDesc": {
+      "fqName": "gateway_traffic",
+      "help": "traffic on gateway interface",
+      "varLabels": [
+        "gateway"
+      ],
+      "fixedLabels": {
+        "direction": "Received",
+        "unit": "Bytes",
+        "interface": "WAN"
+      }
+    },
+    "promType": "CounterValue"
+  },
+  {
+    "service": "urn:schemas-upnp-org:service:WANCommonInterfaceConfig:1",
+    "action": "GetAddonInfos",
+    "result": "X_AVM_DE_TotalBytesReceived64",
+    "promDesc": {
+      "fqName": "gateway_traffic_64",
+      "help": "traffic on gateway interface",
+      "varLabels": [
+        "gateway"
+      ],
+      "fixedLabels": {
+        "direction": "Received",
+        "unit": "Bytes",
+        "interface": "WAN"
+      }
+    },
+    "promType": "CounterValue"
+  },
+  {
+    "service": "urn:schemas-upnp-org:service:WANCommonInterfaceConfig:1",
+    "action": "GetAddonInfos",
+    "result": "TotalBytesSent",
+    "promDesc": {
+      "fqName": "gateway_traffic",
+      "help": "traffic on gateway interface",
+      "varLabels": [
+        "gateway"
+      ],
+      "fixedLabels": {
+        "direction": "Sent",
+        "unit": "Bytes",
+        "interface": "WAN"
+      }
+    },
+    "promType": "CounterValue"
+  },
+  {
+    "service": "urn:schemas-upnp-org:service:WANCommonInterfaceConfig:1",
+    "action": "GetAddonInfos",
+    "result": "X_AVM_DE_TotalBytesSent64",
+    "promDesc": {
+      "fqName": "gateway_traffic_64",
+      "help": "traffic on gateway interface",
+      "varLabels": [
+        "gateway"
+      ],
+      "fixedLabels": {
+        "direction": "Sent",
+        "unit": "Bytes",
+        "interface": "WAN"
+      }
+    },
+    "promType": "CounterValue"
+  },
+  {
+    "service": "urn:schemas-upnp-org:service:WANCommonInterfaceConfig:1",
+    "action": "GetAddonInfos",
+    "result": "ByteSendRate",
+    "promDesc": {
+      "fqName": "gateway_traffic_rate",
+      "help": "traffic rate on gateway interface",
+      "varLabels": [
+        "gateway"
+      ],
+      "fixedLabels": {
+        "direction": "Sent",
+        "unit": "Bytes",
+        "interface": "WAN"
+      }
+    },
+    "promType": "GaugeValue"
+  },
+  {
+    "service": "urn:schemas-upnp-org:service:WANCommonInterfaceConfig:1",
+    "action": "GetAddonInfos",
+    "result": "ByteReceiveRate",
+    "promDesc": {
+      "fqName": "gateway_traffic_rate",
+      "help": "traffic rate on gateway interface",
+      "varLabels": [
+        "gateway"
+      ],
+      "fixedLabels": {
+        "direction": "Received",
+        "unit": "Bytes",
+        "interface": "WAN"
+      }
+    },
+    "promType": "GaugeValue"
+  },
+  {
+    "service": "urn:dslforum-org:service:WANCommonInterfaceConfig:1",
+    "action": "GetTotalPacketsReceived",
+    "result": "TotalPacketsReceived",
+    "promDesc": {
+      "fqName": "gateway_traffic",
+      "help": "traffic on gateway interface",
+      "varLabels": [
+        "gateway"
+      ],
+      "fixedLabels": {
+        "direction": "Received",
+        "unit": "Packets",
+        "interface": "DSL"
+      }
+    },
+    "promType": "CounterValue"
+  },
+  {
+    "service": "urn:dslforum-org:service:WANCommonInterfaceConfig:1",
+    "action": "GetTotalPacketsSent",
+    "result": "TotalPacketsSent",
+    "promDesc": {
+      "fqName": "gateway_traffic",
+      "help": "traffic on gateway interface",
+      "varLabels": [
+        "gateway"
+      ],
+      "fixedLabels": {
+        "direction": "Sent",
+        "unit": "Packets",
+        "interface": "DSL"
+      }
+    },
+    "promType": "CounterValue"
+  },
+  {
+    "service": "urn:dslforum-org:service:WLANConfiguration:1",
+    "action": "GetTotalAssociations",
+    "result": "TotalAssociations",
+    "promDesc": {
+      "fqName": "gateway_wlan_current_connections",
+      "help": "current WLAN connections",
+      "varLabels": [
+        "gateway"
+      ],
+      "fixedLabels": {
+        "wlan": "2.4 GHz"
+      }
+    },
+    "promType": "GaugeValue"
+  },
+  {
+    "service": "urn:dslforum-org:service:WLANConfiguration:2",
+    "action": "GetTotalAssociations",
+    "result": "TotalAssociations",
+    "promDesc": {
+      "fqName": "gateway_wlan_current_connections",
+      "help": "current WLAN connections",
+      "varLabels": [
+        "gateway"
+      ],
+      "fixedLabels": {
+        "wlan": "5 Ghz"
+      }
+    },
+    "promType": "GaugeValue"
+  },
+  {
+    "service": "urn:dslforum-org:service:WLANConfiguration:1",
+    "action": "GetInfo",
+    "result": "Status",
+    "okValue": "Up",
+    "promDesc": {
+      "fqName": "gateway_wlan_status",
+      "help": "WLAN status (Enabled = 1)",
+      "varLabels": [
+        "gateway"
+      ],
+      "fixedLabels": {
+        "wlan": "2.4 Ghz"
+      }
+    },
+    "promType": "GaugeValue",
+    "cacheEntryTTL": 60
+  },
+  {
+    "service": "urn:dslforum-org:service:WLANConfiguration:2",
+    "action": "GetInfo",
+    "result": "Status",
+    "okValue": "Up",
+    "promDesc": {
+      "fqName": "gateway_wlan_status",
+      "help": "WLAN status (Enabled = 1)",
+      "varLabels": [
+        "gateway"
+      ],
+      "fixedLabels": {
+        "wlan": "5 Ghz"
+      }
+    },
+    "promType": "GaugeValue",
+    "cacheEntryTTL": 60
+  },
+  {
+    "service": "urn:dslforum-org:service:DeviceInfo:1",
+    "action": "GetInfo",
+    "result": "UpTime",
+    "promDesc": {
+      "fqName": "gateway_uptime_seconds",
+      "help": "gateway uptime",
+      "varLabels": [
+        "gateway",
+        "Description"
+      ]
+    },
+    "promType": "GaugeValue"
+  },
+  {
+    "service": "urn:dslforum-org:service:DeviceInfo:1",
+    "action": "GetInfo",
+    "result": "ModelName",
+    "promDesc": {
+      "fqName": "gateway_device_modelname",
+      "help": "gateway device model name",
+      "varLabels": [
+        "gateway",
+        "Description",
+        "ModelName",
+        "ProductClass",
+        "SoftwareVersion",
+        "HardwareVersion"
+      ]
+    },
+    "promType": "GaugeValue"
+  },
+  {
+    "service": "urn:dslforum-org:service:LANEthernetInterfaceConfig:1",
+    "action": "GetStatistics",
+    "result": "Stats.BytesSent",
+    "promDesc": {
+      "fqName": "gateway_traffic",
+      "help": "traffic on gateway interface",
+      "varLabels": [
+        "gateway"
+      ],
+      "fixedLabels": {
+        "direction": "Sent",
+        "unit": "Bytes",
+        "interface": "LAN"
+      }
+    },
+    "promType": "CounterValue"
+  },
+  {
+    "service": "urn:dslforum-org:service:LANEthernetInterfaceConfig:1",
+    "action": "GetStatistics",
+    "result": "Stats.BytesReceived",
+    "promDesc": {
+      "fqName": "gateway_traffic",
+      "help": "traffic on gateway interface",
+      "varLabels": [
+        "gateway"
+      ],
+      "fixedLabels": {
+        "direction": "Received",
+        "unit": "Bytes",
+        "interface": "LAN"
+      }
+    },
+    "promType": "CounterValue"
+  },
+  {
+    "service": "urn:dslforum-org:service:Hosts:1",
+    "action": "GetGenericHostEntry",
+    "actionArgument": {
+      "name": "NewIndex",
+      "isIndex": true,
+      "providerAction": "GetHostNumberOfEntries",
+      "value": "HostNumberOfEntries"
+    },
+    "result": "Active",
+    "promDesc": {
+      "fqName": "gateway_host_active",
+      "help": "is host currently active",
+      "varLabels": [
+        "gateway",
+        "IPAddress",
+        "MACAddress",
+        "InterfaceType",
+        "HostName"
+      ]
+    },
+    "promType": "GaugeValue",
+    "cacheEntryTTL": 60
+  },
+  {
+    "service": "urn:dslforum-org:service:X_AVM-DE_Dect:1",
+    "action": "GetGenericDeviceInfos",
+    "actionArgument": {
+      "name": "NewIndex",
+      "isIndex": true,
+      "providerAction": "GetNumberOfDectEntries",
+      "value": "NumberOfEntries"
+    },
+    "result": "Active",
+    "promDesc": {
+      "fqName": "gateway_dect_active",
+      "help": "is dect device currently active",
+      "varLabels": [
+        "gateway",
+        "ID",
+        "Name",
+        "Model"
+      ]
+    },
+    "promType": "GaugeValue",
+    "cacheEntryTTL": 120
+  },
+  {
+    "service": "urn:dslforum-org:service:X_AVM-DE_Homeauto:1",
+    "action": "GetGenericDeviceInfos",
+    "actionArgument": {
+      "name": "NewIndex",
+      "isIndex": false,
+      "value": "0"
+    },
+    "result": "MultimeterPower",
+    "promDesc": {
+      "fqName": "gateway_dect_power_centiwatt",
+      "help": "current power of the DECT socket in 0.01 W",
+      "varLabels": [
+        "gateway",
+        "DeviceName",
+        "AIN"
+      ]
+    },
+    "promType": "GaugeValue"
+  },
+  {
+    "service": "urn:dslforum-org:service:X_AVM-DE_Homeauto:1",
+    "action": "GetGenericDeviceInfos",
+    "actionArgument": {
+      "name": "NewIndex",
+      "isIndex": false,
+      "value": "0"
+    },
+    "result": "MultimeterEnergy",
+    "promDesc": {
+      "fqName": "gateway_dect_energy_wh",
+      "help": "energy counter of the DECT socket in Wh",
+      "varLabels": [
+        "gateway",
+        "DeviceName",
+        "AIN"
+      ]
+    },
+    "promType": "GaugeValue"
+  },
+  {
+    "service": "urn:dslforum-org:service:X_AVM-DE_Homeauto:1",
+    "action": "GetGenericDeviceInfos",
+    "actionArgument": {
+      "name": "NewIndex",
+      "isIndex": false,
+      "value": "0"
+    },
+    "result": "TemperatureCelsius",
+    "promDesc": {
+      "fqName": "gateway_dect_temperature_decicelsius",
+      "help": "temperature at the DECT socket in 0.1 C",
+      "varLabels": [
+        "gateway",
+        "DeviceName",
+        "AIN"
+      ]
+    },
+    "promType": "GaugeValue"
+  },
+  {
+    "service": "urn:dslforum-org:service:X_AVM-DE_Homeauto:1",
+    "action": "GetGenericDeviceInfos",
+    "actionArgument": {
+      "name": "NewIndex",
+      "isIndex": false,
+      "value": "0"
+    },
+    "result": "Present",
+    "promDesc": {
+      "fqName": "gateway_dect_present",
+      "help": "is the DECT socket connected",
+      "varLabels": [
+        "gateway",
+        "DeviceName",
+        "AIN"
+      ]
+    },
+    "promType": "GaugeValue",
+    "okValue": "CONNECTED"
+  },
+  {
+    "service": "urn:dslforum-org:service:X_AVM-DE_Homeauto:1",
+    "action": "GetGenericDeviceInfos",
+    "actionArgument": {
+      "name": "NewIndex",
+      "isIndex": false,
+      "value": "0"
+    },
+    "result": "SwitchState",
+    "promDesc": {
+      "fqName": "gateway_dect_switch_on",
+      "help": "is the DECT socket switched on",
+      "varLabels": [
+        "gateway",
+        "DeviceName",
+        "AIN"
+      ]
+    },
+    "promType": "GaugeValue",
+    "okValue": "ON"
+  },
+  {
+    "service": "urn:dslforum-org:service:X_AVM-DE_Homeauto:1",
+    "action": "GetGenericDeviceInfos",
+    "actionArgument": {
+      "name": "NewIndex",
+      "isIndex": false,
+      "value": "1"
+    },
+    "result": "MultimeterPower",
+    "promDesc": {
+      "fqName": "gateway_dect_power_centiwatt",
+      "help": "current power of the DECT socket in 0.01 W",
+      "varLabels": [
+        "gateway",
+        "DeviceName",
+        "AIN"
+      ]
+    },
+    "promType": "GaugeValue"
+  },
+  {
+    "service": "urn:dslforum-org:service:X_AVM-DE_Homeauto:1",
+    "action": "GetGenericDeviceInfos",
+    "actionArgument": {
+      "name": "NewIndex",
+      "isIndex": false,
+      "value": "1"
+    },
+    "result": "MultimeterEnergy",
+    "promDesc": {
+      "fqName": "gateway_dect_energy_wh",
+      "help": "energy counter of the DECT socket in Wh",
+      "varLabels": [
+        "gateway",
+        "DeviceName",
+        "AIN"
+      ]
+    },
+    "promType": "GaugeValue"
+  },
+  {
+    "service": "urn:dslforum-org:service:X_AVM-DE_Homeauto:1",
+    "action": "GetGenericDeviceInfos",
+    "actionArgument": {
+      "name": "NewIndex",
+      "isIndex": false,
+      "value": "1"
+    },
+    "result": "TemperatureCelsius",
+    "promDesc": {
+      "fqName": "gateway_dect_temperature_decicelsius",
+      "help": "temperature at the DECT socket in 0.1 C",
+      "varLabels": [
+        "gateway",
+        "DeviceName",
+        "AIN"
+      ]
+    },
+    "promType": "GaugeValue"
+  },
+  {
+    "service": "urn:dslforum-org:service:X_AVM-DE_Homeauto:1",
+    "action": "GetGenericDeviceInfos",
+    "actionArgument": {
+      "name": "NewIndex",
+      "isIndex": false,
+      "value": "1"
+    },
+    "result": "Present",
+    "promDesc": {
+      "fqName": "gateway_dect_present",
+      "help": "is the DECT socket connected",
+      "varLabels": [
+        "gateway",
+        "DeviceName",
+        "AIN"
+      ]
+    },
+    "promType": "GaugeValue",
+    "okValue": "CONNECTED"
+  },
+  {
+    "service": "urn:dslforum-org:service:X_AVM-DE_Homeauto:1",
+    "action": "GetGenericDeviceInfos",
+    "actionArgument": {
+      "name": "NewIndex",
+      "isIndex": false,
+      "value": "1"
+    },
+    "result": "SwitchState",
+    "promDesc": {
+      "fqName": "gateway_dect_switch_on",
+      "help": "is the DECT socket switched on",
+      "varLabels": [
+        "gateway",
+        "DeviceName",
+        "AIN"
+      ]
+    },
+    "promType": "GaugeValue",
+    "okValue": "ON"
+  }
+]
