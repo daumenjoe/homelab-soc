@@ -28,6 +28,7 @@ PI_FILES=(
     "pihole:/usr/local/bin/pihole_analytics.py:analytics/pihole_analytics.py"
     "watchdog:/usr/local/bin/homelab-watchdog.py:infra/watchdog/watchdog.py"
     "watchdog:/etc/watchdog.json:infra/watchdog/watchdog.json.example:redact"
+    "wazuh:/var/ossec/integrations/custom-iris:integrations/custom-iris.py"
 )
 
 RULES_DIR="$REPO/rules"

@@ -41,7 +41,8 @@ DEFAULTS = {"customer_id": 2, "vt_api_key": "", "dashboard_url": "https://wazuh.
             "verify_tls": True, "nrd_days": 30, "vt_per_minute": 4, "vt_per_day": 500,
             "misp_url": "", "misp_api_key": "", "misp_verify_tls": True, "misp_stale_days": 365,
             "llm_url": "", "llm_model": "qwen2.5:7b", "llm_timeout": 90, "llm_num_ctx": 8192,
-            "dm_model": "", "dm_gate": 0.5}
+            "dm_model": "", "dm_gate": 0.5,
+            "infra_hosts": {}}   # {"192.168.0.1": "gateway/router", ...}: Betrieb, nie isolieren (Befund 42)
 VT_STATE = "/var/ossec/var/custom-iris-vt.json"   # local request counter, shared by parallel runs
 TIMEOUT = 15
 ENRICH_TIMEOUT = 8
@@ -263,6 +264,10 @@ LLM_SYSTEM = (
     "Verdict scale: malicious = strong evidence of an attack or compromise, act now (isolate, forensics); "
     "suspicious = needs a human investigation before any action; benign = can be closed, explain why; "
     "unknown = only if the data is truly insufficient. If your own next step is to isolate or contain a host, the verdict is malicious. "
+    "If the facts contain an 'infrastructure' map, those hosts are this network's own gateway, DNS, SIEM and servers: "
+    "scans, port changes and setting changes originating from them are normal operation unless the enrichment shows compromise, "
+    "and isolating them is never the next step; recommend checking the service instead. "
+    "A missing process name (null) in Velociraptor port events is a sensor limitation on some hosts, not evidence of hiding. "
     "Confidence is an integer from 1 to 100, never 0. Answer in English, in the requested JSON only."
 )
 LLM_SCHEMA = {
@@ -331,6 +336,8 @@ def enrich_llm(alert, enrichment, cfg):
         "event": data.get("pihole_analytics") or data.get("dns") or {k: v for k, v in data.items() if k not in ("integration",)},
         "enrichment": enrichment,
     }
+    if cfg.get("infra_hosts"):
+        facts["infrastructure"] = cfg["infra_hosts"]
     body = {
         "model": cfg["llm_model"], "stream": False, "think": False, "format": LLM_SCHEMA,
         "options": {"temperature": 0.2, "num_ctx": int(cfg["llm_num_ctx"])},
