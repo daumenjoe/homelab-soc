@@ -1,0 +1,11 @@
+# /etc/systemd/system/triage-spooler.timer  (Befund 43)
+[Unit]
+Description=Every 120 s: is the LLM host up and is there queued triage?
+
+[Timer]
+OnBootSec=120
+OnUnitActiveSec=120
+AccuracySec=10
+
+[Install]
+WantedBy=timers.target

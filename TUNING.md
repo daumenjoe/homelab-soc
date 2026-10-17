@@ -965,6 +965,62 @@ hatte sie, Git nie.
 Zweitmeinung und ein Fall, den jemand lesen muss. Einmal pro Woche die Liste
 lesen, nicht nur die Zahlen, ist ab jetzt Teil des Betriebs.
 
+### Befund 43: Triage-Spool — der llm-Rechner darf aus sein (2026-10-17)
+
+**Anlass:** Der llm-Rechner (5800X3D, RX 7900 XT) zieht im Leerlauf rund 70 W,
+damit er für ein paar Dutzend Triage-Anfragen am Tag bereitsteht. Bisher war
+„aus“ gleichbedeutend mit „kein Urteil“: `custom-iris` sondiert `/api/tags`
+mit 3 s Timeout, schreibt `llm: unreachable` in den Alert, und das war's. Der
+Fall lag in IRIS ohne Gate, ohne Triage, ohne Zweitmeinung, für immer.
+
+**Umbau:** Die Integration bleibt synchron und der IRIS-Alert entsteht wie
+bisher sofort (Push kommt pünktlich, nichts geht verloren). Neu bei
+`unreachable`: Tag `llm-pending`, und Alert plus bereits gelaufenes Enrichment
+(RDAP, VT, MISP, PTR) landen als eine JSON-Datei je Fall unter
+`/var/ossec/var/triage-spool/`, Name `<UTC>-<IRIS-ID>.json`, atomar über
+tmp + rename. Ein systemd-Timer (`triage-spooler.timer`, alle 120 s, läuft als
+`wazuh`) startet `triage-spooler`: leerer Spool oder keine Antwort von
+`/api/tags` heißt stiller Exit, keine Logzeile. Antwortet die API, werden die
+Dateien in Reihenfolge abgearbeitet, mit denselben Funktionen wie die
+Integration selbst (`run_triage()`, `triage_text()`, per Import aus
+`custom-iris`, nichts kopiert): Gate, Triage, Zweitmeinung. Das Ergebnis geht
+als Kommentar an den IRIS-Alert („Deferred triage: … delivered 2h13m later“),
+`llm-pending` wird gegen `dm-…`/`llm-…` getauscht, `alert_context.enrichment`
+nachgezogen, Datei gelöscht. API-Key und Hook-URL liest der Spooler aus dem
+`<integration>`-Block der `ossec.conf`, es gibt keine zweite Kopie.
+
+Drei Entscheidungen, bewusst so: Der Spooler weckt nichts (kein WoL, der
+Mensch entscheidet, wann 400 W anspringen). Kein Fall verfällt, eine Triage
+drei Tage später ist immer noch eine Triage. Und das Urteil kommt als
+Kommentar, nicht in die Beschreibung, damit „nachgereicht“ sichtbar bleibt.
+
+Randfälle: Geht der Host mitten im Lauf wieder aus, bricht der Spooler ab,
+der Rest wartet. LLM-Fehler (Timeout, kaputtes JSON) werden bis zu dreimal
+versucht, dann wird der Fehler selbst als Kommentar geliefert. IRIS-Fehler
+lassen die Datei liegen, nächster Tick. Ein Alert, der inzwischen gelöscht oder
+gemerged wurde (HTTP 404), wird verworfen, bevor LLM-Zeit draufgeht. Ein
+flock verhindert zwei parallele Läufe; der Zähler `attempts` wird vor dem Lauf
+hochgesetzt, damit ein Absturz mitzählt.
+
+**Nagelprobe:** Den logentries-Fall vom 16.10. (Befund 42) mit
+`triage-spooler --replay` bei abgeschaltetem Rechner eingespielt: IRIS-Alert
+1305 mit `llm-pending`, Spool-Datei da. Rechner an, Timer gewartet: nach dem
+nächsten Tick Kommentar am Alert, Tags `dm-suspicious llm-suspicious
+llm-disagree`, Spool leer. Dass `--list` dabei kurz `attempts 1` zeigte, war
+der laufende Tick (gemma plus cogito brauchen rund eine Minute), kein Fehler.
+
+**Betrieb:** `triage-spooler --list` zeigt die Warteschlange mit Alter;
+`triage-spooler --replay <alert.json>` spielt einen Alert durch die
+Integration, ohne den Key in die Shell zu nehmen. Tagescheck zählt jetzt
+„Triage-Spool wartend“ und „nachgereicht heute“. Der Watchdog führt den Agent
+`llm` als optional, sonst wäre „down“ die neue Dauerzeile. sync-check vergleicht
+Spooler und beide Units gegen das Repo.
+
+**Lehre:** Ein SOC-Baustein, der nur funktioniert, wenn ein Gaming-PC durchläuft,
+ist keine Architektur, sondern eine Stromrechnung. Die Entkopplung hat die
+Integration nicht komplizierter gemacht, sie hat nur die Stelle, an der das
+Urteil verloren ging, durch eine Datei ersetzt.
+
 ### Korrekturen (2026-10-09)
 
 - **Baseline-Abdeckung ist 9/9, nicht 7/9.** Die Zaehlung vom 06.10. zaehlte

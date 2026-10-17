@@ -12,6 +12,9 @@ Enrichment (best-effort, short timeouts; a failure never blocks the alert):
                  distribution and a needs_human probability in ~2 s; gates the LLM triage
   - LLM triage:  local Ollama model reads the enriched alert, returns verdict + reasoning
                  (advisory only: never changes severity, never acts)
+  - Spool:       if the LLM host is switched off, the IRIS alert is created at once with the
+                 tag llm-pending and alert + enrichment are kept in SPOOL_DIR; triage-spooler
+                 (systemd timer, 120 s) delivers the verdict as an IRIS comment once the host is up
 
 Optional config /var/ossec/etc/custom-iris.json (root:wazuh 640):
   {"customer_id": 2, "vt_api_key": "...", "dashboard_url": "https://wazuh.example",
@@ -35,7 +38,7 @@ from pathlib import Path
 
 import requests
 
-VERSION = "2.9"
+VERSION = "3.0"
 CONFIG_PATH = "/var/ossec/etc/custom-iris.json"
 DEFAULTS = {"customer_id": 2, "vt_api_key": "", "dashboard_url": "https://wazuh.provinglab.de/app/wazuh",
             "verify_tls": True, "nrd_days": 30, "vt_per_minute": 4, "vt_per_day": 500,
@@ -44,6 +47,7 @@ DEFAULTS = {"customer_id": 2, "vt_api_key": "", "dashboard_url": "https://wazuh.
             "dm_model": "", "dm_gate": 0.5,
             "infra_hosts": {}}   # {"192.168.0.1": "gateway/router", ...}: Betrieb, nie isolieren (Befund 42)
 VT_STATE = "/var/ossec/var/custom-iris-vt.json"   # local request counter, shared by parallel runs
+SPOOL_DIR = "/var/ossec/var/triage-spool"          # alerts waiting for the LLM host (Befund 43)
 TIMEOUT = 15
 ENRICH_TIMEOUT = 8
 LOG = "/var/ossec/logs/integrations.log"
@@ -368,6 +372,81 @@ def enrich_client(ip):
         return {"hostname": ""}
 
 
+def llm_unreachable(opinion):
+    return "unreachable" in str(opinion.get("llm", ""))
+
+
+def run_triage(alert, enrichment, cfg):
+    """Decision model, LLM triage and second opinion. Adds decision / llm_triage /
+    llm_second_opinion to enrichment and returns the tags. Shared with triage-spooler."""
+    tags = []
+    decision = enrich_decision(alert, enrichment, cfg)
+    enrichment["decision"] = decision
+    if decision.get("verdict"):
+        tags.append(f"dm-{decision['verdict']}")
+    # LLM triage only when the decision model wants a human (or is unavailable): dm_gate = needs_human threshold, 0 = always
+    run_llm = not decision.get("verdict") or decision["needs_human"] >= float(cfg.get("dm_gate", 0.5)) or decision["verdict"] != "benign"
+    models = (cfg["llm_model"] if isinstance(cfg["llm_model"], list) else [cfg["llm_model"]]) if run_llm else []
+    opinions = []
+    for m in models:
+        opinions.append(enrich_llm(alert, enrichment, dict(cfg, llm_model=m)))
+        if llm_unreachable(opinions[-1]):
+            break   # host is off: do not wait for the second opinion either
+    triage = opinions[0] if opinions else {"llm": "skipped: decision model says benign, no human needed"}
+    enrichment["llm_triage"] = triage
+    if len(opinions) > 1:
+        enrichment["llm_second_opinion"] = opinions[1]
+    if triage.get("verdict"):
+        tags.append(f"llm-{triage['verdict']}")
+        second = opinions[1] if len(opinions) > 1 else {}
+        if second.get("verdict") and second["verdict"] != triage["verdict"]:
+            tags.append("llm-disagree")
+    elif llm_unreachable(triage):
+        tags.append("llm-pending")   # host is off: main() spools the case, triage-spooler delivers later
+    return tags
+
+
+def triage_text(enrichment):
+    """Decision, triage and second opinion as text: appended to the IRIS description,
+    or posted as a comment by triage-spooler. Empty when nothing has a verdict."""
+    decision = enrichment.get("decision", {})
+    triage = enrichment.get("llm_triage", {})
+    second = enrichment.get("llm_second_opinion", {})
+    text = ""
+    if decision.get("verdict"):
+        pr = decision["probabilities"]
+        text += (f"\n\nDecision ({decision['model']}, {decision['seconds']}s): {decision['verdict'].upper()} "
+                 f"{round(pr.get(decision['verdict'], 0) * 100)}% [benign {round(pr.get('benign', 0) * 100)} / suspicious "
+                 f"{round(pr.get('suspicious', 0) * 100)} / malicious {round(pr.get('malicious', 0) * 100)}], needs human "
+                 f"{round(decision['needs_human'] * 100)}%")
+    if triage.get("verdict"):
+        text += (f"\n\nLLM triage ({triage['model']}, {triage['seconds']}s): {triage['verdict'].upper()} "
+                 f"({triage['confidence']}%) - {triage['summary']}\nReasoning: {triage['reasoning']}\nNext step: {triage['next_step']}")
+        if second.get("verdict"):
+            agree = "agrees" if second["verdict"] == triage["verdict"] else "DISAGREES"
+            text += (f"\n\nSecond opinion ({second['model']}, {second['seconds']}s) {agree}: {second['verdict'].upper()} "
+                     f"({second['confidence']}%) - {second['summary']}")
+    return text
+
+
+def spool(alert, enrichment, alert_id):
+    """LLM host is off: keep alert + enrichment (without the failed verdicts) so that
+    triage-spooler can run the triage later and comment on the IRIS alert."""
+    try:
+        keep = {k: v for k, v in enrichment.items() if k not in ("decision", "llm_triage", "llm_second_opinion")}
+        now = datetime.now(timezone.utc)
+        name = f"{now.strftime('%Y%m%dT%H%M%SZ')}-{alert_id}.json"
+        Path(SPOOL_DIR).mkdir(parents=True, exist_ok=True)
+        tmp = Path(SPOOL_DIR) / (name + ".tmp")
+        tmp.write_text(json.dumps({"alert_id": alert_id, "rule_id": field(alert, "rule.id"),
+                                   "spooled": now.isoformat(timespec="seconds"), "attempts": 0,
+                                   "alert": alert, "enrichment": keep}, ensure_ascii=False, default=str), encoding="utf-8")
+        tmp.rename(Path(SPOOL_DIR) / name)   # atomic: the spooler only picks up *.json
+        logging.info("alert %s spooled for later triage (%s)", alert_id, name)
+    except Exception as exc:  # noqa: BLE001
+        logging.error("alert %s could not be spooled: %s", alert_id, exc)
+
+
 # --------------------------------------------------------------------------- IRIS helpers
 def iris_get(base, headers, path, verify):
     r = requests.get(f"{base}{path}", headers=headers, verify=verify, timeout=TIMEOUT)
@@ -426,27 +505,7 @@ def build_alert(alert, cfg, types, status_id):
         hostname = enrich_client(client)["hostname"]
         enrichment["client"] = {"ip": client, "hostname": hostname or "no PTR"}
 
-    decision = enrich_decision(alert, enrichment, cfg)
-    enrichment["decision"] = decision
-    if decision.get("verdict"):
-        tags.append(f"dm-{decision['verdict']}")
-    # LLM triage only when the decision model wants a human (or is unavailable): dm_gate = needs_human threshold, 0 = always
-    run_llm = not decision.get("verdict") or decision["needs_human"] >= float(cfg.get("dm_gate", 0.5)) or decision["verdict"] != "benign"
-    models = (cfg["llm_model"] if isinstance(cfg["llm_model"], list) else [cfg["llm_model"]]) if run_llm else []
-    opinions = []
-    for m in models:
-        opinions.append(enrich_llm(alert, enrichment, dict(cfg, llm_model=m)))
-        if "llm" in opinions[-1] and "unreachable" in str(opinions[-1]["llm"]):
-            break   # host is off: do not wait for the second opinion either
-    triage = opinions[0] if opinions else {"llm": "skipped: decision model says benign, no human needed"}
-    enrichment["llm_triage"] = triage
-    if len(opinions) > 1:
-        enrichment["llm_second_opinion"] = opinions[1]
-    if triage.get("verdict"):
-        tags.append(f"llm-{triage['verdict']}")
-        second = opinions[1] if len(opinions) > 1 else {}
-        if second.get("verdict") and second["verdict"] != triage["verdict"]:
-            tags.append("llm-disagree")
+    tags += run_triage(alert, enrichment, cfg)
 
     summary = []
     rd, vt = enrichment.get("rdap", {}), enrichment.get("virustotal", {})
@@ -479,20 +538,7 @@ def build_alert(alert, cfg, types, status_id):
     description = rule.get("description", "")
     if summary:
         description += "\n\nEnrichment: " + "; ".join(summary)
-    if decision.get("verdict"):
-        pr = decision["probabilities"]
-        description += (f"\n\nDecision ({decision['model']}, {decision['seconds']}s): {decision['verdict'].upper()} "
-                        f"{round(pr.get(decision['verdict'], 0) * 100)}% [benign {round(pr.get('benign', 0) * 100)} / suspicious "
-                        f"{round(pr.get('suspicious', 0) * 100)} / malicious {round(pr.get('malicious', 0) * 100)}], needs human "
-                        f"{round(decision['needs_human'] * 100)}%")
-    if triage.get("verdict"):
-        description += (f"\n\nLLM triage ({triage['model']}, {triage['seconds']}s): {triage['verdict'].upper()} "
-                        f"({triage['confidence']}%) - {triage['summary']}\nReasoning: {triage['reasoning']}\nNext step: {triage['next_step']}")
-        second = enrichment.get("llm_second_opinion", {})
-        if second.get("verdict"):
-            agree = "agrees" if second["verdict"] == triage["verdict"] else "DISAGREES"
-            description += (f"\n\nSecond opinion ({second['model']}, {second['seconds']}s) {agree}: {second['verdict'].upper()} "
-                            f"({second['confidence']}%) - {second['summary']}")
+    description += triage_text(enrichment)
 
     context = {
         "wazuh_rule_id": rule.get("id"), "wazuh_level": level,
@@ -552,7 +598,10 @@ def main():
         body = r.json() if r.headers.get("content-type", "").startswith("application/json") else {}
         if r.status_code == 200 and body.get("status") == "success":
             extra = ", ".join(payload["alert_tags"].split(",")[2:]) or "no tags"
-            logging.info("rule %s -> IRIS alert %s (%s)", field(alert, "rule.id"), field(body, "data.alert_id"), extra)
+            alert_id = field(body, "data.alert_id")
+            logging.info("rule %s -> IRIS alert %s (%s)", field(alert, "rule.id"), alert_id, extra)
+            if "llm-pending" in payload["alert_tags"].split(","):
+                spool(alert, payload["alert_context"]["enrichment"], alert_id)
             return 0
         logging.error("rule %s -> HTTP %s: %s", field(alert, "rule.id"), r.status_code, r.text[:300])
         return 1

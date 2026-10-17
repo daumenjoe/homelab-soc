@@ -29,6 +29,9 @@ PI_FILES=(
     "watchdog:/usr/local/bin/homelab-watchdog.py:infra/watchdog/watchdog.py"
     "watchdog:/etc/watchdog.json:infra/watchdog/watchdog.json.example:redact"
     "wazuh:/var/ossec/integrations/custom-iris:integrations/custom-iris.py"
+    "wazuh:/var/ossec/integrations/triage-spooler:integrations/triage-spooler.py"
+    "wazuh:/etc/systemd/system/triage-spooler.service:integrations/triage-spooler.service"
+    "wazuh:/etc/systemd/system/triage-spooler.timer:integrations/triage-spooler.timer"
 )
 
 RULES_DIR="$REPO/rules"
