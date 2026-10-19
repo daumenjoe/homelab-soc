@@ -1035,6 +1035,57 @@ Die Messung, um die es ging: Rechner-Leiste 126,5 W mit llm im Leerlauf,
 60,0 W ohne. **66,5 W** für einen Rechner, der auf Triage-Anfragen wartet, rund
 580 kWh im Jahr. 
 
+### Befund 44: 103 neue WLAN-Clients an einem Tag — Zufalls-MACs, und wie Wazuh Kinder sortiert (2026-10-19)
+
+**Anlass:** Tagescheck: 103 Triage-Zeilen für 110174 („new client joined our
+AP“, Level 8), 48 IRIS-Fälle, der llm hat am Nachmittag zweieinhalb Stunden
+nachgereicht (der Spool aus Befund 43 hat dabei zum ersten Mal unter Last
+gearbeitet: 90 von 90 geliefert, ohne Aussetzer). Alle Urteile `suspicious`,
+Gate wie Modell. Die Regel war seit Samstag wieder scharf, weil die
+Lernphasen-Override in der 0109 ihr Verfallsdatum überschritten hatte
+(Befund 42).
+
+**Was es war:** Nicht die Fritzbox, Kismet. Sechs Tage zurückgezählt: 349
+Alerts, 348 davon mit lokal verwalteter MAC (zweite Hex-Stelle 2/6/a/e), also
+Zufallsadresse, dazu `ssid: ""` und `own_ssid: false`. Das Sensor-Skript setzt
+`on_own_ap`, sobald Kismet den Client einer unserer BSSIDs zuordnet, und
+`own_ssid`, wenn der Client unsere SSID nennt. Die 348 haben sie nie genannt:
+Handys in Funkreichweite, die beim Probe-Austausch an unseren AP gehängt
+werden, jeden Tag mit neuer Adresse. Ein Gerät, das wirklich mit unserem WLAN
+spricht, nennt die SSID. Die eine Ausnahme am 13. war der Fall, für den die
+Regel da ist.
+
+**Fix:** Kindregel 110193 (Level 3) unter 110174: `own_ssid false` und MAC
+`^.[26aeAE]:` als `pcre2`. Dazu 110194 (Level 7, 20 in 10 Minuten), falls aus
+den Nachbarn ein Schwall wird (Wardriving, Scanner, Veranstaltung). Hersteller-
+MAC oder genannte SSID bleiben bei 110174/L8.
+
+**Drei Lehren, zwei davon über mich:**
+
+1. *Geschwister werden nach Level sortiert, nicht nach Datei.* Ich hatte die
+   Kindregel erst als Geschwister vor 110174 gestellt, mit dem Satz „das erste
+   passende Kind gewinnt“. `wazuh-logtest -v` zeigte die Wahrheit: 110172 (10),
+   110173 (10), 110174 (8), fertig; ein L3 käme erst nach 110176 und 110175
+   dran. Wazuh hängt Kinder absteigend nach Level in die Liste, die
+   Dateireihenfolge entscheidet nur bei gleichem Level. Dass die bisherigen
+   „steht davor“-Konstruktionen (110187 Heartbeat L0 in 0108, 110011 L1 vor
+   110040) trotzdem funktionieren, liegt daran, dass sich die Geschwister dort
+   über Felder ausschließen. Die saubere Form für „Ausnahme von einer Regel“
+   ist das Kind unter der Regel, wie 110136 unter 110132; das Kind gewinnt
+   unabhängig vom Level.
+2. *`osregex` kennt keine Zeichenklassen.* `[26aeAE]` ist für die Wazuh-
+   Standard-Regex ein Literal; `type="pcre2"` ans Feld, sonst matcht nie etwas
+   und Logtest sagt nur „110174“.
+3. *Eine Lernphase beantwortet nicht, was die Regel eigentlich unterscheiden
+   soll.* Die Override hat 110174 einen Monat leise gehalten, der Blick auf die
+   Daten hätte in einer Minute gezeigt, dass 99 % Zufalls-MACs sind.
+
+**Nebenfund:** Der Tagescheck zählt in „Triage heute“ `rule NNNNNN` im
+Integrations-Log; seit Befund 43 schreibt der Spooler dieselbe Form („alert N
+rule NNNNNN ->“), nachgereichte Fälle zählen doppelt. Grep auf
+`custom-iris: rule` eingeschränkt, Spool-Zeilen („wartend“, „nachgereicht
+heute“) ergänzt.
+
 ### Korrekturen (2026-10-09)
 
 - **Baseline-Abdeckung ist 9/9, nicht 7/9.** Die Zaehlung vom 06.10. zaehlte

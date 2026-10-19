@@ -32,12 +32,38 @@
     <group>wlan_attack,</group>
   </rule>
 
+  <!-- Uebrige Kismet-Alerts -->
+  <rule id="110176" level="6">
+    <if_sid>110170</if_sid>
+    <field name="kismet.kind">^alert$</field>
+    <description>kismet alert $(kismet.header): $(kismet.text)</description>
+  </rule>
+
   <!-- Unbekannter Client haengt an einem unserer Access Points -->
   <rule id="110174" level="8">
     <if_sid>110170</if_sid>
     <field name="kismet.kind">^new_device$</field>
     <field name="kismet.on_own_ap">^true$</field>
     <description>WLAN: new client $(kismet.mac) ($(kismet.manuf)) joined our AP $(kismet.bssid)</description>
+    <mitre><id>T1200</id></mitre>
+  </rule>
+
+  <!-- Kind von 110174 (nicht Geschwister: Wazuh probiert Geschwister nach Level absteigend,
+       ein L3 kaeme nie vor dem L8 dran). Zufalls-MAC (lokal verwaltet, 2. Hex-Stelle 2/6/a/e)
+       an unserem AP, ohne unsere SSID: Handys in Funkreichweite, jeden Tag neue Adresse,
+       348 von 349 Faellen in sechs Tagen (Befund 44). Geraete, die unsere SSID nennen,
+       oder mit Hersteller-MAC bleiben bei 110174/L8. -->
+  <rule id="110193" level="3">
+    <if_sid>110174</if_sid>
+    <field name="kismet.own_ssid">^false$</field>
+    <field name="kismet.mac" type="pcre2">^.[26aeAE]:</field>
+    <description>WLAN: random-MAC client $(kismet.mac) seen at our AP $(kismet.bssid), never named our SSID</description>
+  </rule>
+
+  <!-- Schwall davon: 20 in 10 Minuten ist kein Nachbar mehr (Wardriving, Scanner, Veranstaltung) -->
+  <rule id="110194" level="7" frequency="20" timeframe="600">
+    <if_matched_sid>110193</if_matched_sid>
+    <description>WLAN: $(kismet.bssid) sees 20+ new random-MAC clients in 10 min</description>
     <mitre><id>T1200</id></mitre>
   </rule>
 
@@ -50,13 +76,6 @@
     <description>WLAN: $(kismet.mac) ($(kismet.manuf)) probes for our SSID '$(kismet.ssid)' without being connected</description>
   </rule>
 
-  <!-- Uebrige Kismet-Alerts -->
-  <rule id="110176" level="6">
-    <if_sid>110170</if_sid>
-    <field name="kismet.kind">^alert$</field>
-    <description>kismet alert $(kismet.header): $(kismet.text)</description>
-  </rule>
-
   <!-- Neue Nachbarn: Info -->
   <rule id="110177" level="3">
     <if_sid>110170</if_sid>
@@ -65,6 +84,7 @@
     <description>WLAN: new access point nearby '$(kismet.ssid)' $(kismet.mac) ch $(kismet.channel) $(kismet.signal) dBm</description>
   </rule>
 
+  <!-- Auffangregel fuer alles andere Neue -->
   <rule id="110178" level="2">
     <if_sid>110170</if_sid>
     <field name="kismet.kind">^new_device$</field>
