@@ -25,6 +25,7 @@ Domains sind in diesem Protokoll bewusst nur als Kategorie genannt.
 
 **Entdeckt durch:** ersten Lauf von `tests/run-logtest.sh` – ein Gravity-Block endete bei 110003 statt bei 110010.
 **Ursache:** Wazuh wertet Level-0-Kindregeln zuerst aus und steigt danach nur noch in deren Kinder ab. Gate 110003 (Level 0, „kein CDN") fing damit fast jedes Event ab; die Geschwisterregeln 110010 (Blocked), 110020 (TXT), 110030 (NXDOMAIN) und 110050 (DoH) wurden nur noch für CDN-Domains geprüft – und mit ihnen die Frequency-Regeln 110021, 110031 und 110040.
+(Nachtrag, Befund 44: Nicht „Level 0 zuerst“. Wazuh probiert Geschwister nach Level absteigend, bei gleichem Level in Dateireihenfolge. Hier waren alle Kandidaten Level 0, deshalb gewann die Datei. Ausnahmen gehören als Kind unter die Regel, nicht als Geschwister davor.)
 **Auswirkung:** mehrere Tage keine Alerts dieser Regeln; im Dashboard nicht erkennbar, weil „nichts kommt" wie „alles ruhig" aussieht.
 **Maßnahme:** betroffene Regeln hängen an beiden Gates (`if_sid 110002, 110003`). Zusätzlich Regex-Fehler behoben: der Router-Hostname ohne führenden Punkt passierte Gate 1.
 **Beleg:** am Folgetag erstmals echte Treffer für 110050 (10), 110040 (4) und 110010 (ca. 2.350 in 17 h, Level 3, informativ).
