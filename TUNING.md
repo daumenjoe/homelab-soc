@@ -1087,6 +1087,68 @@ rule NNNNNN ->“), nachgereichte Fälle zählen doppelt. Grep auf
 `custom-iris: rule` eingeschränkt, Spool-Zeilen („wartend“, „nachgereicht
 heute“) ergänzt.
 
+### Befund 45: Honeypot-Updates ohne Internet — apt-cacher-ng als einziger Weg nach draußen (2026-10-23)
+
+**Anlass:** Fuhrpark-Updates. Der Canary (LXC 102) hat seit seiner Einrichtung
+`policy_out: DROP` mit genau drei Ausnahmen (Manager 1514/1515, Pi-hole DNS),
+und das ist richtig so: Ein Honeypot, der nach Hause telefonieren kann, ist im
+Ernstfall ein Sprungbrett. Die Kehrseite: `apt update` hing seit Monaten in
+„Connecting to deb.debian.org“, der Paketstand war der des Templates. Die
+Frage war, wie ein Host Updates bekommt, der das Internet nie sehen darf.
+
+**Verworfen:** Lokaler Debian/Ubuntu-Spiegel (Hunderte GB für Pakete, die
+niemand braucht) und „Firewall kurz auf, apt, Firewall zu“ (funktioniert, wird
+aber vergessen, und einmal vergessen heißt dauerhaft offen).
+
+**Gebaut:** LXC 108 `aptcache` (Debian 13, unprivilegiert, 512 MB, 1 Core,
+8 GB Root, 40 GB eigenes Volume unter `/var/cache/apt-cacher-ng`, feste
+`.230`, DNS über Pi-hole) mit `apt-cacher-ng`. Alle Hosts bekommen eine Zeile
+in `/etc/apt/apt.conf.d/01proxy`: http über den Cache, https `DIRECT` (die
+Wazuh-Quelle). Der Cache holt jedes Paket einmal, danach kommt es aus dem
+Netz des Hauses. Der Canary bekommt eine vierte Firewall-Regel (`.230` tcp
+3142) und sonst nichts; seine Wazuh-Quelle zeigt auf
+`http://192.168.178.230:3142/HTTPS///packages.wazuh.com/…`, damit der Cache
+sie per https holt und per http ausliefert. Erster `apt update` im Canary:
+alle Indizes über die `.230`, 17 Pakete, kein Paket hat das Internet gesehen.
+
+**Drei Entscheidungen beim Einrichten, alle auf der Seite „weniger Weg“:**
+
+- Die Debconf-Frage „HTTP-Tunnel erlauben?“ mit **Nein**: Mit Tunnel wäre der
+  Cache ein CONNECT-Proxy zu beliebigen Zielen, und der Canary hätte über ihn
+  das ganze Internet. Ohne Tunnel liefert er nur Dateien von den Spiegeln, die
+  jemand in einer Quelle genannt hat, und das steht im Log.
+- `AllowUserPorts: 80 443` als eigene Datei `zz-ports.conf`, weil 443 als
+  Zielport für `HTTPS///` nötig ist; der Default (nur 80) gab „prohibited
+  port“. Das ist kein Tunnel, der Cache macht die https-Verbindung selbst.
+- Auf dem Canary `Acquire::http::Proxy::192.168.178.230 "DIRECT"`, sonst
+  verpackt apt die Cache-URL nochmal in eine Proxy-Anfrage an den Cache
+  („confusing proxy mode“, die zweite Hälfte derselben Fehlermeldung).
+
+**Stolperer:** Das Cache-Volume war vor dem Paket da und gehörte root; der
+Dienst läuft als `apt-cacher-ng` und startete nicht. `chown` auf das Volume,
+dann lief es. Und die `01proxy` landete einmal auf dem aptcache selbst, wo
+sie Unsinn ist (er wäre sein eigener Proxy); gelöscht, kein Schaden.
+
+**Nebenbei, Locales:** Die Perl-Warnungen auf allen Hosts kamen daher, dass
+der Laptop seine `LC_*`-Variablen (Region de_DE, Sprache en_US) per SSH
+mitschickt und `de_DE.UTF-8` auf den Zielhosts nicht erzeugt war. Lösung:
+`de_DE.UTF-8 UTF-8` an `/etc/locale.gen` anhängen und `locale-gen`, auf jedem
+Host. Bewusst **nicht** `LANG` umgestellt: Programmausgaben bleiben Englisch,
+damit Fehlermeldungen suchbar bleiben und kein `grep` auf deutsche Texte
+läuft. `dpkg-reconfigure locales` mit Debconf-Vorgabe hat auf Debian übrigens
+nicht gereicht, die `locale.gen` gewinnt.
+
+**Betrieb:** aptcache bekommt Wazuh-Agent, Watchdog-Port-Check (3142) und einen
+Eintrag in `infra_hosts`. Log unter `/var/log/apt-cacher-ng/apt-cacher.log`,
+`O` = vom Spiegel geholt, `I` = aus dem Cache geliefert; Cache-Größe nach dem
+ersten vollen Durchlauf: ___ MB.
+
+**Lehre:** „Darf nicht raus“ und „muss aktuell sein“ widersprechen sich nur,
+solange der Weg nach draußen ein Weg für alles ist. Ein Cache, der nur
+Paketdateien kennt und keine Tunnel, macht aus der Dauerlücke einen einzelnen
+internen Zielpunkt, dasselbe Muster wie beim Manager. Der Canary ist jetzt der
+Host mit dem engsten Regelwerk und trotzdem auf Stand.
+
 ### Korrekturen (2026-10-09)
 
 - **Baseline-Abdeckung ist 9/9, nicht 7/9.** Die Zaehlung vom 06.10. zaehlte
