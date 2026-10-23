@@ -7,7 +7,8 @@
     "wazuh": "https://wazuh.provinglab.de/",
     "iris": "https://iris.provinglab.de/",
     "misp": "https://misp.provinglab.de/users/login",
-    "pve": "https://pve.provinglab.de:8006/"
+    "pve": "https://pve.provinglab.de:8006/",
+    "aptcache": "http://192.168.178.230:3142/acng-report.html"
   },
   "ping": {
     "pihole": "192.168.178.251",
