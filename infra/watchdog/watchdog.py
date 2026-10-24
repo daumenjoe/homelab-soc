@@ -75,7 +75,18 @@ def check_pve_backups(cfg):
     pb = cfg['pve_backup']
     headers = {'Authorization': f"PVEAPIToken={pb['token']}"}
     out, ok_all = [], True
+    disabled = set()
+    try:   # storages that are switched off in PVE (usb-backup off) are not a failure
+        r = requests.get(f"{pb['url']}/api2/json/nodes/{pb['node']}/storage",
+                         headers=headers, verify=pb.get('verify', True), timeout=10)
+        r.raise_for_status()
+        disabled = {s['storage'] for s in r.json()['data'] if not s.get('enabled', 1)}
+    except Exception as exc:  # noqa: BLE001
+        out.append(f"storage list {type(exc).__name__}")
     for storage, max_h in pb['storages'].items():
+        if storage in disabled:
+            out.append(f"{storage} off (disabled)")
+            continue
         try:
             r = requests.get(f"{pb['url']}/api2/json/nodes/{pb['node']}/storage/{storage}/content",
                              headers=headers, params={'content': 'backup'}, verify=pb.get('verify', True), timeout=10)

@@ -13,3 +13,7 @@ rules/0109-local_overrides.xml
 tests/cases/9*-local-*.log
 analytics/config/allowlist.txt
 lists/dns-allow
+
+#fleetupdate
+scripts/fleet-update.sh
+scripts/usb-backup.sh

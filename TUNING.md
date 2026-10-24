@@ -1153,6 +1153,8 @@ Paketdateien kennt und keine Tunnel, macht aus der Dauerlücke einen einzelnen
 internen Zielpunkt, dasselbe Muster wie beim Manager. Der Canary ist jetzt der
 Host mit dem engsten Regelwerk und trotzdem auf Stand.
 
+Nachtrag, Betrieb (24.10.): fleet-update.sh (lokal, nicht versioniert) aktualisiert alle Hosts außer pve der Reihe nach, hält wazuh-agent außer auf dem Manager, erkennt Reboot-Bedarf über Marker-Datei und Kernel-Vergleich; pve bleibt händisch über die GUI. usb-backup {off|on|status} auf pve hängt die Backup-Platte über die systemd-Units aus (Automount zuerst, sonst kommt sie beim nächsten Zugriff zurück), deaktiviert den Storage solange und legt die Platte mit hdparm -Y schlafen; der Watchdog meldet deaktivierte Storages als off (disabled) statt BAD. Nebenbei gesehen: usb-backup 77 % voll, Retention des Jobs prüfen.
+
 ### Korrekturen (2026-10-09)
 
 - **Baseline-Abdeckung ist 9/9, nicht 7/9.** Die Zaehlung vom 06.10. zaehlte
