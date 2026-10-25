@@ -970,6 +970,8 @@ Nachtrag - 24.10.2026
 | <hash>.e.aa.online-metrix.net, <hash>.d.centinel-analytica.com | 110022 oversized label | 3 + 3 | ThreatMetrix (Login-Fingerprint bei Banken/PayPal) und Cardinal Centinel (3-D Secure bei Kartenzahlung in Apps); das lange Label ist die Session-ID | Suffixe in der lokalen 0109 |
 | eu-data.kameleoon.io | 110040 | 1 | A/B-Testing-SaaS, Website lädt in Schleife | Liste dns-telemetry |
 
+110157 (L5): WLAN-Flapping, 10 Joins desselben Geräts in einer Stunde (same_field auf fritz.msg, da keine MAC als Feld). Anlass: Gerät mit 42 An-/Abmeldungen an einem Tag auf 2,4 GHz; Energiesparen oder Empfang, auf der Liste.
+
 ### Befund 43: Triage-Spool — der llm-Rechner darf aus sein (2026-10-17)
 
 **Anlass:** Der llm-Rechner (5800X3D, RX 7900 XT) zieht im Leerlauf rund 70 W,
