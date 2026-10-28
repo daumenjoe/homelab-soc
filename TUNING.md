@@ -972,6 +972,12 @@ Nachtrag - 24.10.2026
 
 110157 (L5): WLAN-Flapping, 10 Joins desselben Geräts in einer Stunde (same_field auf fritz.msg, da keine MAC als Feld). Anlass: Gerät mit 42 An-/Abmeldungen an einem Tag auf 2,4 GHz; Energiesparen oder Empfang, auf der Liste.
 
+Pi-hole: Alibaba Cloud log service as L5 child of 110022 (110027), RevenueCat gated
+
+Shopping-app telemetry from a household phone; visible in the daily check,
+no IRIS case. revenuecat-static.com (paywall SDK assets) joins the local
+suffix gate.
+
 ### Befund 43: Triage-Spool — der llm-Rechner darf aus sein (2026-10-17)
 
 **Anlass:** Der llm-Rechner (5800X3D, RX 7900 XT) zieht im Leerlauf rund 70 W,
