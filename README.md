@@ -20,7 +20,7 @@ every mistake along the way is written down in [TUNING.md](TUNING.md).
 
 | Component | Role | Runs on |
 |---|---|---|
-| Wazuh 4.14 | SIEM: decoders, ~100 custom rules, 15 agents, indexer | VM |
+| Wazuh 4.14 | SIEM: decoders, ~110 custom rules, 16 agents, indexer | VM |
 | Pi-hole 6 + Unbound | recursive DNS with blocklists; query log is the DNS sensor | Raspberry Pi 4 |
 | Suricata 8 + Kismet | IDS on a switch mirror port; WLAN monitoring on two radios | Raspberry Pi 5 |
 | OpenCanary | honeypot with SSH/HTTP/SMB/Redis/VNC decoys | LXC |
@@ -28,10 +28,11 @@ every mistake along the way is written down in [TUNING.md](TUNING.md).
 | auditd | execve auditing of firewall tools on the attack target | redcanary VM |
 | DFIR-IRIS 2.4 | case management; one case per alert of level ≥ 7 from the sensor groups (Pi-hole, Suricata, honeypot, Velociraptor, …); Wazuh’s own rootcheck/FIM/PAM alerts stay in the SIEM | VM |
 | MISP 2.5 | threat intelligence, queried with decay scoring | VM |
-| Ollama | nimble (decision model), Gemma 4 12B (triage), gpt-oss 20B (second opinion) | separate PC, RX 7900 XT |
+| Ollama | nimble (decision model), Gemma 4 12B (triage), cogito 32B (second opinion); the PC is switched off most of the day, alerts queue in a spool and are triaged when it comes back | separate PC, RX 7900 XT |
 | Grafana + Prometheus | alert dashboard on the OpenSearch index; host, Pi-hole and Fritzbox metrics | LXC |
-| Watchdog | 14 liveness checks with ntfy push, independent of the stack | Raspberry Pi 3 |
+| Watchdog | 15 liveness checks with ntfy push, independent of the stack | Raspberry Pi 3 |
 | Proxmox PVE 9 | hypervisor for the VMs and LXCs; nightly backups to SSD, weekly to USB | Lenovo M90q |
+| apt-cacher-ng | package cache for every host; the only route to the package mirrors for the honeypot, which has no other way out (finding 45) | LXC |
 
 The one hop that is not obvious: Velociraptor clients report to their own
 server, and the Wazuh agent **on that server** reads the datastore as JSON
@@ -88,6 +89,16 @@ into one event, an analytics detector names the client (the dnsmasq block
 line does not carry it), and two standby switches on the TV ended the night
 traffic. → finding 35
 
+```
+Pi-hole blocks per hour, 2026-10-09, before the fix
+04:xx   221  ###
+10:xx   226  ###
+12:xx   783  ###########
+13:xx   429  ######
+15:xx   442  ######
+   …  the TV was switched on for about ten minutes that day
+```
+
 **The bridge dropped the first event of every day.** Velociraptor writes
 event results into one file per client, source and day; the Wazuh agent reads
 those files by wildcard and, when it discovers a new file at runtime, starts at
@@ -98,25 +109,6 @@ the Atomic tests passed because earlier tests had already created the day's
 files. Reproduced three times, `only-future-events` did not help. Fixed with a
 heartbeat row written by each artifact source just after midnight UTC, so the
 day's file exists before anything real happens. → finding 39
-
-<!-- Operations-Absatz, Satz ergaenzen: -->
-The daily check is a script (`scripts/daily-check.sh`) that prints the
-counts next to their expected values, the top rules of the day, what reached
-triage, the Pi-hole block histogram from the FTL database and the watchdog's
-red lines. Two of its lines exist because a number was wrong for days without
-anyone noticing (findings 36, 37).
-
-<!-- "35 numbered findings" -> "40 numbered findings" -->
-
-```
-Pi-hole blocks per hour, 2026-10-09, before the fix
-04:xx   221  ###
-10:xx   226  ###
-12:xx   783  ###########
-13:xx   429  ######
-15:xx   442  ######
-   …  the TV was switched on for about ten minutes that day
-```
 
 **The triage pipeline alerting on itself.** Velociraptor's listening-port
 baseline reported the ephemeral ports that Ollama opens for each model run —
@@ -130,29 +122,39 @@ between EDR and triage, closed with a port filter on the artifact.
 |---|---|
 | [`analytics/pihole_analytics.py`](analytics/pihole_analytics.py) | behavioural DNS analytics on the Pi-hole FTL database: beaconing (interval regularity), DGA features, DNS tunneling (payload in subdomains), newly-registered domains, blocked-domain hammering, cross-signal correlation. Standard library only, state file, heartbeat event. |
 | [`velociraptor/`](velociraptor/) | two CLIENT_EVENT artifacts: `Homelab.Events.Baseline` (new listening ports, SSH keys, cron lines via `diff()`), `Homelab.Events.FirewallState` (nftables chain set from `nft -j`, catches `ufw disable` / `nft flush` / Docker and iptables-nft changes) |
-| [`integrations/custom-iris.py`](integrations/) | Wazuh integration: RDAP → VirusTotal → MISP (decay) → decision model gate → LLM triage → second-opinion LLM → IRIS case with tags |
-| [`rules/`](rules/) | ~100 custom rules in 11 files; naming scheme `01xx` own sources, `09xx` overrides on Wazuh standard rules (load order matters — finding 33) |
-| [`scripts/sync-check.sh`](scripts/sync-check.sh) | compares live rules, agent-group configs and Velociraptor artifacts against the repo; `check` / `diff FILE` / `pull`. Changes are made on the systems first, the repo is pulled into line before anything is deployed. |
-| [`infra/watchdog/`](infra/watchdog/) | 14 checks from a Pi outside the stack: services, backup age, NIC hang counter, alert volume; ntfy push on state change |
+| [`integrations/custom-iris.py`](integrations/) | Wazuh integration: RDAP → VirusTotal → MISP (decay) → decision model gate → LLM triage → second-opinion LLM → IRIS case with tags. The prompt knows the network's own infrastructure, so a router probing the honeypot is not "isolate the host" (finding 42) |
+| [`integrations/triage-spooler.py`](integrations/) | when the LLM host is off, the case is created at once and queued; a systemd timer polls the Ollama API every 120 s and delivers gate, triage and second opinion as a comment on the IRIS alert once it answers. Nothing is woken up, nothing expires (finding 43) |
+| [`rules/`](rules/) | ~110 custom rules in 12 files; naming scheme `01xx` own sources, `09xx` overrides on Wazuh standard rules (load order matters — finding 33). Exceptions to a rule are children of that rule, never siblings placed in front of it: Wazuh tries siblings by level, not by file order (finding 44) |
+| [`scripts/sync-check.sh`](scripts/sync-check.sh) | compares live rules, agent-group configs, CDB lists, Velociraptor artifacts and the scripts on the Pis and the manager against the repo, with secrets redacted and duplicate rule IDs flagged; `check` / `diff FILE` / `pull`. Changes are made on the systems first, the repo is pulled into line before anything is deployed. |
+| [`scripts/daily-check.sh`](scripts/daily-check.sh) | the daily check: counts next to their expected values, top rules, what reached triage and what is waiting in the spool, the Pi-hole block histogram from the FTL database, the watchdog's red lines. Two of its lines exist because a number was wrong for days without anyone noticing (findings 36, 37) |
+| [`infra/watchdog/`](infra/watchdog/) | 15 checks from a Pi outside the stack: services, backup age, NIC hang counter, alert volume; ntfy push on state change. Knows which agents may be off and which backup storage is deliberately detached |
+| [`infra/fritzbox_exporter/`](infra/fritzbox_exporter/) | FRITZ!DECT 200 power metering through the existing fritzbox_exporter (TR-064 Homeauto, no tunnels); the reason the LLM host is allowed to sleep: 66.5 W idle, measured |
 | [`atomic/`](atomic/) | Atomic Red Team runner for the `redcanary` VM and the coverage table behind the matrix above |
-| [`tests/`](tests/) | 88 decoder/rule test cases (wazuh-logtest) plus the LLM triage evaluation set: 7 cases, 14 verdicts, used to pick nimble as the gate model |
+| [`tests/`](tests/) | 88 decoder/rule test cases (wazuh-logtest) plus the LLM triage evaluation set: 7 cases, 14 verdicts, run against 15 local models to pick the triage and second-opinion models (finding 16) |
 | [`dashboards/`](dashboards/) | the Grafana dashboard shown at the top, as JSON |
 | [`docs/gen-architecture.py`](docs/gen-architecture.py) | generates the architecture diagram above in light and dark |
 
 ## How it is operated
 
-A daily check takes a minute: NIC hang counter on the hypervisor, today's
-alert count without level-1 noise, and the new detectors' counts (a retry-loop
-rule that should fire two to four times when the TV runs, a firewall-state
-rule that should be at zero). Backups run nightly to a second SSD and weekly
-to a USB disk; the watchdog alerts when either is older than it should be.
+A daily check takes a minute (`scripts/daily-check.sh`): NIC hang counter on
+the hypervisor, today's alert count without level-1 noise, the detectors'
+counts next to what they should be, what reached triage and what is still
+waiting for the LLM. Backups run nightly to a second SSD and weekly to a USB
+disk that is detached between runs; the watchdog alerts when either is older
+than it should be, and knows when the USB storage is deliberately off.
+
+The LLM host is a gaming PC and draws 66.5 W doing nothing, so it is off
+unless it is needed; alerts are created in IRIS immediately and their triage
+is delivered later as a comment. Package updates for all hosts come from a
+local apt cache, which is also how the honeypot gets updates without ever
+seeing the internet.
 
 Changes are made directly on the systems — that is what a homelab is for —
 and `sync-check.sh` pulls the repo into line at the end of the day. Its first
 run found five agent-group configurations that had never been versioned.
 
 Every tuning decision, false positive and wrong assumption is in
-[TUNING.md](TUNING.md): 35 numbered findings so far, including the ones that
+[TUNING.md](TUNING.md): 45 numbered findings so far, including the ones that
 turned out to be my own mistakes.
 
 ## Not included
