@@ -1163,6 +1163,61 @@ Host mit dem engsten Regelwerk und trotzdem auf Stand.
 
 Nachtrag, Betrieb (24.10.): fleet-update.sh (lokal, nicht versioniert) aktualisiert alle Hosts außer pve der Reihe nach, hält wazuh-agent außer auf dem Manager, erkennt Reboot-Bedarf über Marker-Datei und Kernel-Vergleich; pve bleibt händisch über die GUI. usb-backup {off|on|status} auf pve hängt die Backup-Platte über die systemd-Units aus (Automount zuerst, sonst kommt sie beim nächsten Zugriff zurück), deaktiviert den Storage solange und legt die Platte mit hdparm -Y schlafen; der Watchdog meldet deaktivierte Storages als off (disabled) statt BAD. Nebenbei gesehen: usb-backup 77 % voll, Retention des Jobs prüfen.
 
+### Befund 46: Die Baseline steht — Schluss mit der Domain-Jagd, Wochencheck statt Tagescheck (2026-11-01)
+
+**Anlass:** Zwei Wochen Tagescheck nach Befund 42, jeden Abend dieselbe Übung:
+110040 feuert, Domain nachschlagen, einordnen (Conviva, Chrome, Kameleoon,
+trafficjunky, federatedcompute), Listeneintrag, am nächsten Tag der nächste
+Hostname derselben Klasse. Samstag der Schlusspunkt: 74 × 110040 an einem
+Vormittag, `beacons2` bis `beacons5` auf `gvt2.com` und `gvt3.com`, weil Chrome
+seine Beacon-Hosts rotiert und der exakte Listeneintrag von Mittwoch nur
+`beacons.gvt2.com` kannte. 78 IRIS-Fälle, alle im Spool, kein einziger ein
+Urteil wert. Dazu 20 × 110091 vom Surface: web.de im Browser-Tab, die
+Werbeplätze laden im Takt nach, und weil das Surface am Pi-hole vorbei darf,
+sieht der Beaconing-Detektor einen regelmäßigen Takt zu Criteo, PubMatic,
+Adform, Yieldlab.
+
+**Zwei strukturelle Fixes statt der nächsten zwanzig Listeneinträge:**
+
+1. **110040 von Level 7 auf 5.** Die Regel zählt Domains, die der Pi-hole
+   *geblockt* hat, 30-mal in fünf Minuten. Ein geblocktes C2 funktioniert
+   nicht; jeder Treffer ist per Definition eine Wiederholschleife auf
+   Telemetrie oder Werbung, die Liste `dns-telemetry` hat das zwei Wochen lang
+   nur bestätigt. Auf Level 5 bleibt die Zahl im Check, geht aber nicht mehr
+   nach IRIS, nicht in den Spool, nicht vor den llm. Die Liste bekommt keine
+   Einträge mehr.
+2. **Beaconing-Detektor fragt die Gravity.** `pihole_analytics.py` schlägt die
+   Domain (oder eine Elterndomain) in `gravity.db` nach und setzt
+   `"tracker": true`, wenn sie auf einer Blockliste steht. Für die drei
+   Clients, die am Blocking vorbei dürfen, ist ein Takt zu so einer Domain ein
+   Werbeplatz, kein C2; Kindregel 110087 stuft auf Level 3 ab. Beaconing zu
+   Domains, die auf keiner Liste stehen, bleibt Level 7. Erster Treffer steht
+   noch aus (seit dem Patch kein web.de-Tab offen gewesen).
+
+Echtes Beaconing, das durchkommt, bleibt damit die Sache von 110091 mit
+`tracker: false`; Blocklisten-Schleifen sind Statistik.
+
+**Nebenfunde der Woche, alle eingeordnet, keiner ein Vorfall:** ThreatMetrix
+und Cardinal Centinel (Zahlungs-Fingerprinting, Suffixe in der 0109); Alibaba-
+Cloud-Logs einer Shopping-App (110027, L5); AdMaster-Tracking auf zwei
+Geräten (`.cc`-TLD-Regel von ET, Kindregel L3); ein Disassoc mit AVM-eigenem
+Reason-Code vom eigenen AP (110179 in der 0109, der Deauth-Flood-Alarm bleibt
+L10); WPAD- und Suchdomain-Anfragen des Arbeitslaptops im Firmen-VPN (Overrides
+in der 0109, nicht im Repo; am 27.10. ein Viertel aller DNS-Anfragen der
+Woche); `su nobody` aus `cron.daily` als Wazuh-Regel 40101/L10, jeden Tag
+viermal auf zwei Hosts, erst im Wochenblick als Rhythmus erkennbar.
+
+**Umbau des Betriebs:** `weekly-check.sh` löst den Tagescheck ab: sieben Tage
+als Zeilen (L≥2, die Zählregeln, L≥10, IRIS, gespoolt, nachgereicht),
+Wochen-Top-10, jeder L≥10-Alert gruppiert nach Regel und Agent mit erstem
+und letztem Zeitpunkt, Triage nach Regel, Pi-hole-Anfragen und Blocks je Tag.
+Einmal pro Woche, zusammen mit der IRIS-Liste (Befund 42). Der Tagescheck
+bleibt im Repo für den Tag, an dem etwas passiert ist.
+
+**Lehre:** Eine Baseline ist fertig, wenn der nächste Fund derselben Klasse
+keine neue Erkenntnis mehr bringt. Ab da kostet jeder weitere Listeneintrag
+mehr als er spart, und die Regel, die ihn nötig macht, hat das falsche Level.
+
 ### Korrekturen (2026-10-09)
 
 - **Baseline-Abdeckung ist 9/9, nicht 7/9.** Die Zaehlung vom 06.10. zaehlte

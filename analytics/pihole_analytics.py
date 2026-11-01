@@ -40,6 +40,7 @@ VERSION = "1.4.0"
 
 DEFAULTS = {
     "db_path": "/etc/pihole/pihole-FTL.db",
+    "gravity_db": "/etc/pihole/gravity.db",   # Blocklisten; Beaconing dorthin = Tracker (Befund 46)
     "log_path": "/var/log/pihole-analytics/analytics.log",
     "state_path": "/var/lib/pihole-analytics/state.json",
     "allowlist_path": "/etc/pihole-analytics/allowlist.txt",
@@ -426,6 +427,35 @@ class Emitter:
 # Detections
 # --------------------------------------------------------------------------
 
+_GRAVITY = None
+
+
+def gravity_listed(domain, cfg):
+    """True, wenn die Domain oder eine Elterndomain auf einer Pi-hole-Blockliste steht
+    (gravity) oder exakt in der Denylist. Clients, die am Blocking vorbei duerfen, sehen
+    solche Domains im Takt der Werbeplaetze; das ist ein Tracker, kein C2 (Befund 46).
+    Verbindung wird einmal geoeffnet; ohne gravity.db immer False."""
+    global _GRAVITY
+    if _GRAVITY is None:
+        try:
+            _GRAVITY = sqlite3.connect(f"file:{cfg['gravity_db']}?mode=ro", uri=True, timeout=5)
+        except sqlite3.Error:
+            _GRAVITY = False
+    if not _GRAVITY:
+        return False
+    parts = domain.split(".")
+    cands = [".".join(parts[i:]) for i in range(max(1, len(parts) - 1))]
+    q = ",".join("?" * len(cands))
+    try:
+        row = _GRAVITY.execute(
+            f"SELECT 1 FROM gravity WHERE domain IN ({q}) "
+            f"UNION SELECT 1 FROM domainlist WHERE type = 1 AND enabled = 1 AND domain IN ({q}) LIMIT 1",
+            cands + cands).fetchone()
+        return row is not None
+    except sqlite3.Error:
+        return False
+
+
 def detect_beaconing(rows, cfg, allow, state, now, emit):
     c = cfg["beacon"]
     series = defaultdict(list)
@@ -473,6 +503,7 @@ def detect_beaconing(rows, cfg, allow, state, now, emit):
              median_interval=round(med, 1),
              jitter=round(jitter, 3),
              regularity=round(regularity, 2),
+             tracker=gravity_listed(domain, cfg),
              score=round(regularity * (1 - jitter), 2),
              blocked_queries=blocked.get((client, domain), 0),
              duration_seconds=collapsed[-1] - collapsed[0],

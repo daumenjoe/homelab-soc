@@ -108,13 +108,14 @@ the triage of the previous alert. Closed with a port filter on the artifact.
 
 | | |
 |---|---|
-| [`analytics/pihole_analytics.py`](analytics/pihole_analytics.py) | DNS analytics on the Pi-hole FTL database: beaconing (interval regularity), DGA features, DNS tunneling (payload in subdomains), newly-registered domains, blocked-domain hammering, correlation. Standard library only, state file, heartbeat event |
+| [`analytics/pihole_analytics.py`](analytics/pihole_analytics.py) | DNS analytics on the Pi-hole FTL database: beaconing (interval regularity), DGA features, DNS tunneling (payload in subdomains), newly-registered domains, blocked-domain hammering, correlation. Beaconing to a blocklisted domain is marked as tracker, so ad slots on clients that bypass Pi-hole do not become cases (finding 46). Standard library only, state file, heartbeat event |
 | [`velociraptor/`](velociraptor/) | two CLIENT_EVENT artifacts: `Homelab.Events.Baseline` (new listening ports, SSH keys, cron lines via `diff()`), `Homelab.Events.FirewallState` (nftables chain set from `nft -j`; catches `ufw disable`, `nft flush`, Docker and iptables-nft changes) |
 | [`integrations/custom-iris.py`](integrations/) | Wazuh integration: RDAP → VirusTotal → MISP (decay) → decision model gate → LLM triage → second opinion → IRIS case with tags. The prompt carries the network's own infrastructure hosts (finding 42) |
 | [`integrations/triage-spooler.py`](integrations/) | LLM host off: the IRIS case is created at once, the case is spooled, a systemd timer polls the Ollama API every 120 s and posts gate, triage and second opinion as a comment when it answers. No wake-on-LAN, no expiry (finding 43) |
 | [`rules/`](rules/) | ~110 custom rules in 12 files. `01xx` own sources, `09xx` overrides on Wazuh standard rules (load order, finding 33). Exceptions are child rules, not siblings placed in front: Wazuh tries siblings by level, not by file order (finding 44) |
 | [`scripts/sync-check.sh`](scripts/sync-check.sh) | live rules, agent-group configs, CDB lists, Velociraptor artifacts and the scripts on the Pis and the manager against the repo. `check` / `diff FILE` / `pull`. Redacts secrets, flags duplicate rule IDs. Changes go to the systems first, the repo is pulled into line |
-| [`scripts/daily-check.sh`](scripts/daily-check.sh) | the daily check: counts with their expected values, top rules, triage and spool status, Pi-hole blocks per hour from the FTL database, watchdog red lines. Two lines exist because a number was wrong for days (findings 36, 37) |
+| [`scripts/weekly-check.sh`](scripts/weekly-check.sh) | seven days as rows: alert count, the counter rules, level ≥ 10 alerts grouped by rule and agent, IRIS cases, spool and delivery; weekly top 10; Pi-hole queries and blocks per day; watchdog red lines. Reads the day archives and today's alerts.json |
+| [`scripts/daily-check.sh`](scripts/daily-check.sh) | the same for one day, with blocks per hour. Used when something happened, not daily any more. Two of its lines exist because a number was wrong for days (findings 36, 37) |
 | [`infra/watchdog/`](infra/watchdog/) | 15 checks from a Pi outside the stack: services, backup age, NIC hang counter, alert volume. ntfy push on state change. Knows which agents may be off and which backup storage is detached |
 | [`infra/fritzbox_exporter/`](infra/fritzbox_exporter/) | FRITZ!DECT 200 power metering via the fritzbox_exporter (TR-064 Homeauto). LLM host idle: 66.5 W, measured |
 | [`atomic/`](atomic/) | Atomic Red Team runner for the `redcanary` VM and the coverage table above |
@@ -124,10 +125,12 @@ the triage of the previous alert. Closed with a port filter on the artifact.
 
 ## Operation
 
-Daily check, about a minute: NIC hang counter on the hypervisor (expected 0),
-alert count without level 1, detector counts next to their expected values,
-what reached triage, what is waiting in the spool, Pi-hole blocks per hour,
-watchdog red lines.
+Weekly check, about two minutes (`scripts/weekly-check.sh`): seven days as
+rows, alert count without level 1, the counter rules, every level ≥ 10 alert
+grouped by rule and agent, IRIS cases, spool and delivery, Pi-hole queries
+and blocks per day, watchdog red lines. Read together with the IRIS alert
+list. The daily check ran for the first seven weeks, until the baseline was
+done (finding 46); it stays in the repo for days when something happened.
 
 Backups nightly to a second SSD, weekly to a USB disk that is detached between
 runs. The watchdog alerts on backup age and knows when the USB storage is
@@ -143,7 +146,7 @@ Changes are made on the systems, `sync-check.sh` pulls the repo into line.
 Its first run found five agent-group configurations that had never been
 versioned.
 
-[TUNING.md](TUNING.md): 45 numbered findings, including my own mistakes.
+[TUNING.md](TUNING.md): 46 numbered findings, including my own mistakes.
 
 ## Not included
 
