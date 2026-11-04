@@ -1218,6 +1218,86 @@ bleibt im Repo für den Tag, an dem etwas passiert ist.
 keine neue Erkenntnis mehr bringt. Ab da kostet jeder weitere Listeneintrag
 mehr als er spart, und die Regel, die ihn nötig macht, hat das falsche Level.
 
+### Befund 47: Phishing-Triage ohne Detonation — Lookyloo und Pandora, zweimal gebaut (2026-11-01 bis 04)
+
+**Anlass:** Für Mails und Phishing-URLs fehlte ein Werkzeug zwischen „im
+Kopf einordnen“ und „in einer Sandbox ausführen“. Joe Sandbox, Any.Run und
+CAPEv2 sind die Detonationsstufe; die braucht ein Windows-Image, eine
+isolierte Netzstrecke und einen Host mit Luft, und beantwortet für
+Phishing-Mails selten mehr als die statische Zerlegung. Also Stufe 1 aus dem
+CIRCL-Werkzeugkasten: **Lookyloo** rendert URLs in einem isolierten Chromium
+über Tor (Redirect-Kette, nachgeladene Domains, Screenshot, MISP-Push),
+**Pandora** nimmt Mails und Anhänge statisch auseinander (Extractor, OLE/DDE,
+PDF, Observables, Hashlookup, MISP, ClamAV, YARA, Vorschau über LibreOffice).
+Beides Docker-Compose, beides mit dem vorhandenen MISP verbunden.
+
+**Erster Bau (Sonntag), der Lehrgang:** VM mit 4 GB, vier Kernen,
+Standard-CPU-Typ. Lookyloo lief nach einer Stunde, dann Load 30, alles im
+Zustand D, Gunicorn-Worker per OOM gekillt. Mehr Speicher; pve drückte die
+VM per Ballooning wieder auf 4,8 GB, weil der Host über 80 % lag. Pandora:
+Build bricht mit „NumPy was built with baseline optimizations (X86_V2)“ ab
+(CPU-Typ `kvm64`, kein SSE4.2); Kvrocks „Permission denied“ (Container läuft
+als uid 999); „Waiting on storage“ (`storage_db_hostname` muss `kvrocks`
+heißen); `KeyError: 'MISP'` (der Block heißt `MultipleMISPs`); und dann
+6,2 GB für Pandora allein: 51 Worker-Instanzen ab Werk, fünf
+Gunicorn-Worker, jeder Prozess mit ~500 MB Python-Importen. Abend beendet,
+VM aus.
+
+**Zweiter Bau (Dienstag), mit Plan:** Erst die echte Speicherlage auf pve
+gemessen, mit Bordmitteln: RRD-Wochenmaximum je Gast plus `free` im Gast
+über den Guest-Agent. Ergebnis: wazuh belegt 3,7 von 8 GB, misp 2,6 von 6,
+iris 1,4 von 4; der Rest war Page-Cache. Auf 6/4/3 verkleinert, 5 GB frei,
+triage bekommt 10 GB fest ohne Ballooning. Dann VM neu aus dem Cloud-Image,
+`--cpu host`, zwei Kerne (Gunicorn nimmt sonst neun Worker), Swap als Netz.
+Lookyloo baute nicht mehr: seit v1.9.2 Python ≥ 3.11, das Dockerfile steht
+auf 22.04 mit 3.10. Basis auf 24.04, dazu `libasound2t64`,
+`--break-system-packages`, `pysocks` (requests kann sonst keinen
+SOCKS-Proxy), Playwright nur mit Chromium. Lookyloo bei 2,1 GB statt 4,5,
+nachdem die festverdrahteten zehn Gunicorn-Worker auf zwei standen.
+
+**Der Fund dabei:** Jede Capture endete mit „Attempted to open a weird
+URL“. Nicht Lookyloo, nicht Tor, nicht DNS: PlaywrightCapture liest
+`/etc/hosts` des Containers und zerlegt jede Zeile an genau einem
+Leerzeichen; Docker 29 schreibt Tabs, die erste Zeile wirft `ValueError`, die
+Sicherheitsprüfung fängt ihn und blockt jede URL. Am Sonntag lief es, weil
+Debians `docker.io` die Datei noch mit Leerzeichen schrieb. Fix ist ein Wort
+(`split(None, 1)`), als Issue #267 bei Lookyloo/PlaywrightCapture gemeldet,
+vom Maintainer am selben Abend bestätigt, Pull Request am Tag darauf.
+
+**Pandora, abgespeckt:** Replicas überall 1, acht Worker ohne Nutzen aus
+(externe Sandboxes ohne Key, Malware-Repos, YARA-HQ-Vollpaket, QR), Gunicorn
+2 Worker, Kvrocks-Rechte, Hostname: 3,5 GB statt 6,2. Beide Stacks zusammen
+mit ClamAV knapp 7 GB in 10, ohne Swap. Test mit einem KnowBe4-PDF: Pandora
+nennt JavaScript `submitForm` und `OpenAction` beim Namen, rot. Test mit einer
+Phishing-Mail: grün, und zu Recht; Pandora prüft technische Indikatoren, der
+Betrug steckt im Text und im Link. Der Wert für Mails liegt im
+Observables-Reiter (67 URLs, Domains, Adressen, ohne Klick extrahiert); von
+dort geht die verdächtige URL an Lookyloo. Der Lookyloo-Worker in Pandora
+greift nur bei HTML-Anhängen, nicht bei URLs aus Mails; ein Worker, der die
+Observables-URLs an Lookyloo reicht, wäre der nächste PR.
+
+**Reproduzierbar gemacht:** `build-triage-vm.sh` legt die VM auf jedem
+Proxmox unbeaufsichtigt an (Cloud-Init-Userdata mit allen Schritten,
+Parameter für IP, DNS, Key oder Passwort, MISP, apt-Proxy, Tor), die
+Patch-Skripte `patch-lookyloo.sh` und `patch-pandora.sh` halten die lokalen
+Änderungen nach jedem `git pull` idempotent. Zu Hause blind getestet (VM 110,
+fünf Minuten bis `TRIAGE-SETUP-DONE`), danach auf einem zweiten Proxmox mit
+anderen Werten ein Aufruf; dort mit Nginx und Basic Auth davor, weil
+Lookyloo keine Anmeldung kennt.
+
+**Was im Rezept steht und nicht wieder passiert:** 10 GB fest, `--balloon
+0`; 2 vCPUs; `--cpu host`; Kvrocks-Verzeichnisse uid 999;
+`storage_db_hostname` kvrocks; Replicas 1; Gunicorn 2; `restart:
+unless-stopped`; Tor auf `0.0.0.0:9050` mit SocksPolicy nur für Docker-Netze
+und `host.docker.internal` im Compose; nur der eigene Key in `--sshkeys`.
+
+**Lehre:** Zwei Werkzeuge, die für eine Abteilung gebaut sind, auf einen Mini-
+PC zu setzen, geht, aber nur, wenn man vorher misst, was die anderen Gäste
+wirklich brauchen, und danach jeden Prozess zählt, den die Werkzeuge
+starten. Und der Fehler, der am längsten gekostet hat, lag in keinem der
+beiden Projekte, sondern in einer Hilfsfunktion drei Ebenen tiefer, die auf
+ein Leerzeichen vertraut hat.
+
 ### Korrekturen (2026-10-09)
 
 - **Baseline-Abdeckung ist 9/9, nicht 7/9.** Die Zaehlung vom 06.10. zaehlte

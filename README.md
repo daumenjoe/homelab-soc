@@ -31,6 +31,7 @@ Raspberry Pis, one desktop with a consumer GPU. Running daily since September
 | Grafana + Prometheus | alert dashboard on the OpenSearch index; host, Pi-hole, Fritzbox and power metrics | LXC |
 | Watchdog | 15 liveness checks with ntfy push, outside the stack | Raspberry Pi 3 |
 | apt-cacher-ng | package cache for all hosts; the honeypot's only route to the mirrors | LXC |
+| Lookyloo + Pandora | phishing triage: URL rendering over Tor, static mail/attachment analysis, MISP push | VM
 | Proxmox PVE 9 | hypervisor; nightly backups to SSD, weekly to a USB disk | Lenovo M90q |
 
 Velociraptor clients report to their own server. The Wazuh agent on that
