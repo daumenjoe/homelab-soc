@@ -3,8 +3,9 @@
 #
 # Laeuft als root auf dem Proxmox-Host, patch-lookyloo.sh muss daneben liegen. Legt die VM aus
 # dem Debian-13-Cloud-Image an und erzeugt ein Cloud-Init-Userdata, das beim ersten Boot alles
-# einrichtet: Pakete, Docker (offizielles Repo), optional Tor, Swap, Lookyloo mit Patches, Build,
-# Start. Erster Boot dauert 5-10 Minuten (Chromium-Download, Image-Build); Protokoll im Gast unter
+# einrichtet: Pakete, Docker (offizielles Repo, Log-Rotation 3x50 MB), optional Tor, Swap, Lookyloo
+# mit Patches, Build, Start. Platte 64 GB: zwei selbstgebaute Images plus Build-Cache belegen ~30 GB,
+# mit 40 GB lief die Platte voll, Redis ging in MISCONF und die Pandora-Worker loggten 16 GB in Minuten. Erster Boot dauert 5-10 Minuten (Chromium-Download, Image-Build); Protokoll im Gast unter
 # /var/log/cloud-init-output.log. Danach antwortet http://<ip>:5100.
 #
 #   ./build-triage-vm.sh --vmid 110 --name triage-test --ip 192.168.178.233/24 --gw 192.168.178.1 \
@@ -22,7 +23,7 @@
 set -euo pipefail
 
 VMID=""; NAME="triage"; IP=""; GW=""; DNS=""; STORAGE="local-lvm"; BRIDGE="vmbr0"
-CORES=2; MEMORY=10240; DISK_ADD="+38G"; CIUSER="neo"; SSHKEY=""; PWFILE=""
+CORES=2; MEMORY=10240; DISK_ADD="+62G"; CIUSER="neo"; SSHKEY=""; PWFILE=""
 MISP_URL=""; MISP_KEY_FILE=""; APT_PROXY=""; TOR=1
 IMAGE_URL="https://cloud.debian.org/images/cloud/trixie/latest/debian-13-genericcloud-amd64.qcow2"
 IMAGE="/var/lib/vz/template/$(basename "$IMAGE_URL")"
@@ -80,6 +81,8 @@ if proxy:
 add("/etc/apt/sources.list.d/docker.sources",
     "Types: deb\nURIs: https://download.docker.com/linux/debian\nSuites: trixie\nComponents: stable\n"
     "Architectures: amd64\nSigned-By: /etc/apt/keyrings/docker.asc\n")
+add("/etc/docker/daemon.json",
+    '{\n  "log-driver": "json-file",\n  "log-opts": { "max-size": "50m", "max-file": "3" }\n}\n')
 files.append({"path": "/root/patch-lookyloo.sh", "permissions": "0755", "encoding": "b64", "content": e["PATCH_B64"]})
 if misp:
     add("/root/misp.txt", e["MISP_KEY"] + "\n", "0600")

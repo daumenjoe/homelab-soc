@@ -97,5 +97,13 @@
     <description>Pi-hole analytics: $(pihole_analytics.client) hammert geblockte Domain $(pihole_analytics.registrable) ($(pihole_analytics.blocked_queries) Blocks, $(pihole_analytics.rate_per_min)/min, $(pihole_analytics.distinct_fqdns) Subdomains)</description>
     <group>pihole_noise,</group>
   </rule>
+  
+    <!-- Takt zu einer Blocklisten-Domain von einem Client, der am Blocking vorbei darf:
+       Werbeplatz im Browser-Tab, kein C2. Das Feld setzt pihole_analytics aus gravity.db (Befund 46). -->
+  <rule id="110087" level="3">
+    <if_sid>110091</if_sid>
+    <field name="pihole_analytics.tracker">^true$</field>
+    <description>DNS beaconing to a blocklisted ad/tracker domain from an unfiltered client: $(pihole_analytics.client) -> $(pihole_analytics.domain)</description>
+  </rule>
 
 </group>

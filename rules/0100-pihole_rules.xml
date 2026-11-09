@@ -102,7 +102,7 @@
   
   <!-- Blocklist-Beaconing zu UNBEKANNTER Domain: Level 7, Triage.
        Zaehlt nur 110010-Events; gelistete Domains sind vorher 110011 geworden. -->
-  <rule id="110040" level="7" frequency="30" timeframe="300">
+  <rule id="110040" level="5" frequency="30" timeframe="300">
     <if_matched_sid>110010</if_matched_sid>
     <same_field>dns.domain</same_field>
     <description>Pi-hole: $(dns.domain) blocked 30+ times in 5 min - beaconing to blocked domain</description>

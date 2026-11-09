@@ -27,4 +27,11 @@
     <regex type="pcre2">profile="snap\.[^"]+" .*name="(/etc/igfx_user_feature[^"]*|/sys/devices/[^"]*/busnum|/snap/core\d+/[^"]*\.so[^"]*)"</regex>
     <description>AppArmor: Snap-Confinement-Rauschen (igfx/usb-busnum/core-libs), kein Alert</description>
   </rule>
+  
+    <!-- Rechteabgabe an nobody durch root (Cron/Anacron, apt): kein Login eines Systemkontos. -->
+  <rule id="110200" level="3">
+    <if_sid>40101</if_sid>
+    <regex>session opened for user nobody\(uid=65534\) by \(uid=0\)</regex>
+    <description>PAM: root dropped to nobody (scheduled job), not a system-user login</description>
+  </rule>
 </group>

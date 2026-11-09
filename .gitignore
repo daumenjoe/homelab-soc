@@ -17,3 +17,6 @@ lists/dns-allow
 #fleetupdate
 scripts/fleet-update.sh
 scripts/usb-backup.sh
+
+#sonstiges
+infra/infra-ZERTIFIKATE.md

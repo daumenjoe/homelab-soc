@@ -5,12 +5,17 @@
 #      (externe Sandboxes ohne API-Key, Malware-Repos, grosse YARA-Pakete, QR-Codes)
 #   3. config/generic.json: storage_db_hostname "kvrocks" (Compose-Servicename statt 127.0.0.1)
 #   4. docker-compose.yml: restart-Policy, host.docker.internal (Lookyloo-Worker), start_website.py als Volume
-#   5. storage/ und indexing/ gehoeren uid 999 (Kvrocks im Container), sonst "Permission denied"
+#   5. optional LOOKYLOO_URL=https://... : apiurl des Lookyloo-Workers (auch Link-Basis im Bericht)
+#   6. storage/ und indexing/ gehoeren rekursiv uid 999 (Kvrocks im Container), sonst "Permission denied"
+#      und Kvrocks haengt in einer Restart-Schleife, Pandora meldet dann endlos "Waiting on storage to start"
 # Idempotent: jede Aenderung prueft vorher, ob sie noch noetig ist. Konfig-Samples werden kopiert, falls sie fehlen.
 set -euo pipefail
 cd "$(dirname "$0")"
 
 DISABLE=(comodo hybridanalysis joesandbox mwdb malwarebazaar yarahq_full yarahub qrcode)
+# Lookyloo-URL fuer den Worker: Pandora baut daraus auch die Links im Bericht, also den Namen nehmen,
+# den der Browser erreicht (zu Hause https://lookyloo.provinglab.de/). Leer = nicht anfassen.
+LOOKYLOO_URL="${LOOKYLOO_URL:-}"
 
 echo "== Konfig-Samples"
 [[ -f config/generic.json ]] || cp config/generic.json.sample config/generic.json
@@ -60,8 +65,17 @@ if "start_website.py" not in s:
 open(p, "w").write(s); print("   compose:", "geaendert" if s != o else "schon erledigt")
 PYEOF
 
+if [[ -n "$LOOKYLOO_URL" ]]; then
+    echo "== Lookyloo-Worker apiurl"
+    if grep -q "^apiurl: $LOOKYLOO_URL\$" pandora/workers/lookyloo.yml; then echo "   schon $LOOKYLOO_URL"; else
+        python3 -c "import re,sys; p='pandora/workers/lookyloo.yml'; s=open(p).read(); s,c=re.subn(r'^apiurl: .*$', 'apiurl: '+sys.argv[1], s, flags=re.M); assert c==1; open(p,'w').write(s)" "$LOOKYLOO_URL"
+        echo "   apiurl -> $LOOKYLOO_URL"
+    fi
+fi
+
 echo "== Verzeichnisrechte fuer Kvrocks (uid 999)"
+# rekursiv pruefen: nach einem Neu-Checkout oder Kopieren kann db/ darunter wieder dem Benutzer gehoeren
 for d in storage indexing; do
-    if [[ "$(stat -c %u "$d")" == 999 ]]; then echo "   $d: schon 999"; else sudo chown -R 999:999 "$d"; echo "   $d -> 999:999"; fi
+    if [[ -z "$(find "$d" ! -uid 999 -print -quit)" ]]; then echo "   $d: schon 999"; else sudo chown -R 999:999 "$d"; echo "   $d -> 999:999"; fi
 done
 echo "fertig. jetzt: Konfig (MISP, Lookyloo-Worker), docker compose build && docker compose up -d"

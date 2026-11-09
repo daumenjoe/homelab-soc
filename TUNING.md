@@ -1298,6 +1298,28 @@ starten. Und der Fehler, der am längsten gekostet hat, lag in keinem der
 beiden Projekte, sondern in einer Hilfsfunktion drei Ebenen tiefer, die auf
 ein Leerzeichen vertraut hat.
 
+### Befund 48: Die Triage füttert sich selbst (2026-11-09)
+
+Seit dem 4. November abends eine Flut von Suricata-Alerts `ET INFO Http Client Body contains pin= in cleartext` (SID 2035089), aggregiert über 110168, alle mit demselben Flow: Wazuh-Manager `.220` → llm-PC `.45:11434`, `python-requests`, POST. Am Montag aufgefallen, weil die Zahl der 110168 nicht mehr zum Rest passte; Regel vorübergehend auskommentiert.
+
+**Kette.** Port 11434 ist Ollama, der POST ist die LLM-Triage aus custom-iris. Der Prompt enthält den kompletten Alert inklusive `full_log`. Der erste Treffer um 21:16:35 war aber ein anderer Flow: Arbeitsplatz `.77` → Triage-VM `.232:6100`, ein PDF-Upload an Pandora über Klartext-HTTP. Irgendwo in den 65 KB des PDFs steht die Bytefolge `pin=`; die ET-Regel prüft nur `content:"pin="` im HTTP-Body, ohne weitere Bedingung. Suricata meldet Severity 1, 110160 macht Level 10 daraus, der Alert geht in den IRIS und an die Triage. Der Triage-Prompt mit dem `full_log` geht über Klartext-HTTP an Ollama, Suricata sieht denselben String im Body, meldet wieder, die Meldung wird wieder triagiert. Jede Runde erzeugt die nächste. Vor dem Spooler (Befund 43) ging unter Last ein Teil der Triage-Aufrufe verloren und solche Schleifen rissen von selbst ab; jetzt wird jeder Alert zugestellt.
+
+**Ursache in zwei Schichten.**
+
+1. Der Beobachtungskanal liegt im beobachteten Netz. Alles, was Wazuh an den LLM schickt, ist eine Kopie von Alert-Inhalten, also auch von Angriffs-Payloads, in Klartext. Jede inhaltsbasierte Signatur trifft diesen Kanal früher oder später.
+2. Der Upload-Kanal der Triage-VM ist Klartext. Dort wird absichtlich Schadmaterial hochgeladen; der Sensor sieht es mit und meldet es, als wäre es ein Angriff.
+
+**Fix.**
+
+- Suricata `local.rules`: `pass`-Regelpaar für `.220 → .45:11434` und zurück (SID 9000005/9000006). `pass` greift vor allen `alert`-Regeln; es trifft nur dieses Hostpaar auf diesem Port, Ollama bleibt für alle anderen Quellen überwacht.
+- Triage-VM zu Hause bekommt nginx mit TLS vor Lookyloo (443) und Pandora (8443), wie auf der Arbeit; 5100/6100 nur noch auf `127.0.0.1`. Dann sieht der Sensor vom Upload nur noch TLS-Metadaten. Keine zweite `pass`-Regel für den Upload-Flow: ein Sensor, der echte Angriffe auf die Triage-VM nicht mehr sieht, wäre die falsche Richtung.
+- 110168 wieder aktiv.
+- Im selben Zug: `lookyloo.provinglab.de` und `pandora.provinglab.de` im Pi-hole, ein Let's-Encrypt-Zertifikat mit beiden Namen vom Relay (`acme.sh`, `/root/deploy/triage.sh`, Erneuerung im bestehenden Cron), nginx trennt per SNI auf 443; 8443 entfällt. Pandoras `apiurl` für Lookyloo zeigt auf den öffentlichen Namen, damit die Links in den Berichten im Browser funktionieren.
+
+**Nebenbefund.** Die Schleife lief fünf Tage. Der weekly-check (Befund 46) hätte sie am Sonntag gezeigt, der ist aber für Montag geplant; ein Zähler „Alerts pro Regel heute gegen Sieben-Tage-Mittel“ im Watchdog hätte am Mittwoch gemeldet. Kommt als Prüfpunkt dazu.
+
+**Lehre.** Wer Alerts an ein anderes System weiterreicht, baut einen Kanal, der Alert-Inhalte transportiert. Entweder er ist verschlüsselt, oder er ist für den Sensor explizit unsichtbar, sonst beobachtet der Sensor seine eigene Ausgabe. Dasselbe gilt für Analysewerkzeuge, in die man Schadmaterial lädt: Klartext-HTTP ins Analyse-Tool heißt, der IDS analysiert mit.
+
 ### Korrekturen (2026-10-09)
 
 - **Baseline-Abdeckung ist 9/9, nicht 7/9.** Die Zaehlung vom 06.10. zaehlte

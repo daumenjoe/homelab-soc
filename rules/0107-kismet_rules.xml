@@ -31,6 +31,15 @@
     <mitre><id>T1499</id></mitre>
     <group>wlan_attack,</group>
   </rule>
+  
+    <!-- Einzelner unbekannter Disassoc-Code vom eigenen AP: AVM Band-Steering/Mesh nutzt eigene Codes.
+       Floods (DEAUTHFLOOD, BCASTDISCON) bleiben 110173/L10. -->
+  <rule id="110179" level="5">
+    <if_sid>110173</if_sid>
+    <field name="kismet.header">^DISCONCODEINVALID$</field>
+    <field name="kismet.text" type="pcre2">from network (74:42:7F:4C:7C:49|2C:3A:FD:CF:02:C[56])</field>
+    <description>WLAN: own AP $(kismet.text) (vendor reason code, not an attack)</description>
+  </rule>
 
   <!-- Uebrige Kismet-Alerts -->
   <rule id="110176" level="6">
